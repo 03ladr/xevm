@@ -8,8 +8,9 @@ use lib::execution::ExecutionContext;
 fn main() -> Result<()> {
     let stack = Stack::init();
     let memory = Memory::init();
-    let code = vec![0x60, 0x4, 0x60, 0x3, 0x01, 0x00];
-    let mut executor = ExecutionContext::init(code, stack, memory);
+    let mut code_input = String::new();
+    std::io::stdin().read_line(&mut code_input);
+    let mut executor = ExecutionContext::init(hex::decode(code_input.trim())?, stack, memory);
     executor.run()?;
     Ok(())
 }

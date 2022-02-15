@@ -31,7 +31,7 @@ impl ExecutionContext {
     }
 
     pub fn read_code(&mut self, idx: usize) -> Result<u8> {
-        if self.pc + idx > self.code.len() {
+        if self.pc + idx >= self.code.len() {
             println!("Program Counter: {}\nIdx: {}", self.pc, idx);
             return Err(eyre!("Index Out Of Bounds"));
         };
