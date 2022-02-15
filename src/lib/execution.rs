@@ -31,8 +31,7 @@ impl ExecutionContext {
     }
 
     pub fn read_code(&mut self, idx: usize) -> Result<u8> {
-        if self.pc + idx >= self.code.len() {
-            println!("Program Counter: {}\nIdx: {}", self.pc, idx);
+        if self.pc + idx - 1 >= self.code.len() {
             return Err(eyre!("Index Out Of Bounds"));
         };
         let value = self.code[self.pc + idx - 1];
@@ -43,9 +42,8 @@ impl ExecutionContext {
     pub fn run(&mut self) -> Result<()> {
         while !self.stopped {
             let opcode: u8 = self.read_code(1)?;
-            println!("Opcode: {}", opcode);
             _ = self.exec(opcode)?;
-            println!("Stack: {:?}\nPointer: {}", self.stack.storage, self.stack.storage.len());
+            println!("Stack: {:?}", self.stack.storage);
         }
         Ok(())
     }
@@ -59,14 +57,12 @@ impl ExecutionContext {
             },
             PUSH1 => {
                 let value = self.read_code(1)?;
-                println!("Pushing value: {}", value);
                 self.stack.push(U256::from(value))?;
                 Ok(())
             },
             MUL => {
                 let mul1 = self.stack.pop()?;
                 let mul2 = self.stack.pop()?;
-                println!("{}, {}", mul1, mul2);
                 self.stack.push(mul1 * mul2)?;
                 Ok(())
             },
