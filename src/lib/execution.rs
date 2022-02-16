@@ -96,7 +96,6 @@ impl ExecutionContext {
             },
             DIV => {
                 arith_instructor!(/, 1);
-                self.pc_increment(1);
                 Ok(())
             },
             MOD => {
