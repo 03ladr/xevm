@@ -48,13 +48,28 @@ impl ExecutionContext {
     }
 
     pub fn exec(&mut self, opcode: u8) -> Result<()> {
-        macro_rules! arith_instructor {
-            ( $op:tt ) => {
+        macro_rules! bool_arith_instructor {
+            ( $op:tt, $inc:expr ) => {
+                let mut result: u8 = 0;
                 let num2 = self.stack.pop()?;
                 let num1 = self.stack.pop()?;
-                self.stack.push(num1 $op num2)?;
+                let evaluation = num1 $op num2;
+                if evaluation == true {
+                    result = 1;
+                };
+                self.stack.push(U256::from(result))?;
+                self.pc_increment($inc);
             };
-        };
+        }
+        macro_rules! arith_instructor {
+            ( $op:tt, $inc:expr ) => {
+                let num2 = self.stack.pop()?;
+                let num1 = self.stack.pop()?;
+                let evaluation = num1 $op num2;
+                self.stack.push(evaluation)?;
+                self.pc_increment($inc);
+            };
+        }
         match opcode {
             STOP => {
                 self.stop();
@@ -68,39 +83,28 @@ impl ExecutionContext {
                 Ok(())
             },
             MUL => {
-                arith_instructor!(*);
-                self.pc_increment(1);
+                arith_instructor!(*, 1);
                 Ok(())
             },
             ADD => {
-                arith_instructor!(+);
-                self.pc_increment(1);
+                arith_instructor!(+, 1);
                 Ok(())
             },
             SUB => {
-                arith_instructor!(-);
-                self.pc_increment(1);
+                arith_instructor!(-, 1);
                 Ok(())
             },
             DIV => {
-                arith_instructor!(/);
+                arith_instructor!(/, 1);
                 self.pc_increment(1);
                 Ok(())
             },
             MOD => {
-                arith_instructor!(%);
-                self.pc_increment(1);
+                arith_instructor!(%, 1);
                 Ok(())
             },
             EQ => {
-                let num2 = self.stack.pop()?;
-                let num1 = self.stack.pop()?;
-                let mut eq: U256 = U256::from(0u8);
-                if num1 == num2 {
-                    eq = U256::from(1u8);
-                };
-                self.stack.push(eq)?;
-                self.pc_increment(1);
+                bool_arith_instructor!(==, 1);
                 Ok(())
             },
             POP => {
