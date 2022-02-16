@@ -12,9 +12,9 @@ impl Memory {
 
     pub fn store(&mut self, offset: usize, value: U256) -> Result<()> {
         if offset >= self.storage.len() {
-            self.storage.resize(offset, U256::zero());
+            self.storage.resize(offset + 1, U256::zero());
         };
-        self.storage[offset - 1] = value;
+        self.storage[offset] = value;
         Ok(())
     }
 
