@@ -32,7 +32,7 @@ impl ExecutionContext {
 
     pub fn read_code(&mut self, idx: usize) -> Result<u8> {
         if self.pc + idx >= self.code.len() {
-            return Err(eyre!("Index Out Of Bounds"));
+            return Ok(00);
         };
         let value = self.code[self.pc + idx];
         Ok(value)
@@ -42,7 +42,7 @@ impl ExecutionContext {
         while !self.stopped {
             let opcode: u8 = self.read_code(0)?;
             self.exec(opcode)?;
-            println!("Stack: {:?}", self.stack.storage);
+            println!("Opcode: {} @ PC: {}\nStack: {:?}", opcode, self.pc, self.stack.storage);
         }
         Ok(())
     }
@@ -51,9 +51,9 @@ impl ExecutionContext {
         macro_rules! bool_arith_instructor {
             ( $op:tt, $inc:expr ) => {
                 let mut result: u8 = 0;
-                let num2 = self.stack.pop()?;
-                let num1 = self.stack.pop()?;
-                let evaluation = num1 $op num2;
+                let val2 = self.stack.pop()?;
+                let val1 = self.stack.pop()?;
+                let evaluation = val1 $op val2;
                 if evaluation == true {
                     result = 1;
                 };
@@ -63,17 +63,49 @@ impl ExecutionContext {
         }
         macro_rules! arith_instructor {
             ( $op:tt, $inc:expr ) => {
-                let num2 = self.stack.pop()?;
-                let num1 = self.stack.pop()?;
-                let evaluation = num1 $op num2;
+                let val2 = self.stack.pop()?;
+                let val1 = self.stack.pop()?;
+                let evaluation = val1 $op val2;
                 self.stack.push(evaluation)?;
                 self.pc_increment($inc);
             };
         }
+        macro_rules! polynomial_arith_instructor {
+            ( $op1:tt, $op2: tt, $inc: expr ) => {
+                let val3 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                let val1 = self.stack.pop()?;
+                let evaluation = (val1 $op1 val2) $op2 val3;
+                self.stack.push(evaluation)?;
+                self.pc_increment($inc);
+            };
+        }
+        macro_rules! dupn {
+            ( $idx:expr ) => {
+                let val = self.stack.storage[self.stack.storage.len() - $idx];
+                self.stack.push(val)?;
+                self.pc_increment(1);
+            };
+        }
+        macro_rules! swapn { // completely dysfunctional
+            ( $idx: expr ) => {
+                let len = self.stack.storage.len() - $idx;
+                let val1 = self.stack.storage[0];
+                let val2 = self.stack.storage[len];
+                self.stack.storage[len] = val1;
+                self.stack.storage[0] = val2;
+                self.pc_increment(1);
+            };
+        }
+        // macro_rules! pushn { // not implemented
+        //     () => {
+        //
+        //     }
+        // }
         match opcode {
             STOP => {
                 self.stop();
-                println!("Execution Complete");
+                self.pc_increment(1);
                 Ok(())
             },
             PUSH1 => {
@@ -96,7 +128,6 @@ impl ExecutionContext {
             },
             DIV => {
                 arith_instructor!(/, 1);
-                self.pc_increment(1);
                 Ok(())
             },
             MOD => {
@@ -107,11 +138,109 @@ impl ExecutionContext {
                 bool_arith_instructor!(==, 1);
                 Ok(())
             },
+            ISZERO => {
+                let num = self.stack.pop()?;
+                if num == U256::zero() {
+                    self.stack.push(U256::from(1u8))?;
+                } else {
+                    self.stack.push(U256::zero())?;
+                };
+                self.pc_increment(1);
+                Ok(())
+            },
+            ADDMOD => {
+                polynomial_arith_instructor!(+, %, 1);
+                Ok(())
+            },
+            MULMOD => {
+                polynomial_arith_instructor!(*, %, 1);
+                Ok(())
+            },
+            LT => {
+                bool_arith_instructor!(>, 1);
+                Ok(())
+            },
+            GT => {
+                bool_arith_instructor!(<, 1);
+                Ok(())
+            },
+            DUP1 => {
+                dupn!(1);
+                Ok(())
+            },
+            DUP2 => {
+                dupn!(2);
+                Ok(())
+            },
+            DUP3 => {
+                dupn!(3);
+                Ok(())
+            },
+            DUP4 => {
+                dupn!(4);
+                Ok(())
+            },
+            DUP5 => {
+                dupn!(5);
+                Ok(())
+            },
+            DUP6 => {
+                dupn!(6);
+                Ok(())
+            },
+            DUP7 => {
+                dupn!(7);
+                Ok(())
+            },
+            DUP8 => {
+                dupn!(8);
+                Ok(())
+            },
+            DUP9 => {
+                dupn!(10);
+                Ok(())
+            },
+            DUP11 => {
+                dupn!(11);
+                Ok(())
+            },
+            DUP12 => {
+                dupn!(12);
+                Ok(())
+            },
+            DUP13 => {
+                dupn!(13);
+                Ok(())
+            },
+            DUP14 => {
+                dupn!(14);
+                Ok(())
+            },
+            DUP15 => {
+                dupn!(15);
+                Ok(())
+            },
+            DUP16 => {
+                dupn!(16);
+                Ok(())
+            },
+            SWAP1 => {
+                swapn!(1);
+                Ok(())
+            },
+            SWAP2 => {
+                swapn!(2);
+                Ok(())
+            },
+            SWAP3 => {
+                swapn!(3);
+                Ok(())
+            },
             POP => {
                 self.stack.pop()?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             _ => Err(eyre!("Unknown Opcode: {}", opcode))
         }
     }

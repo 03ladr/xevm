@@ -7,7 +7,7 @@ pub struct Memory {
 }
 impl Memory {
     pub fn init() -> Self {
-        Memory { storage: vec![U256::zero(); 1024] }
+        Memory { storage: Vec::with_capacity(1024) }
     }
 
     pub fn store(&mut self, offset: usize, value: U256) -> Result<()> {
