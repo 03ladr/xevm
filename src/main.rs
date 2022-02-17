@@ -6,6 +6,7 @@ use lib::stack::Stack;
 use lib::execution::ExecutionContext;
 
 fn main() -> Result<()> {
+    println!("Enter code to execute below:");
     let stack = Stack::init();
     let memory = Memory::init();
     let mut code_input = String::new();

@@ -87,16 +87,16 @@ impl ExecutionContext {
                 self.pc_increment(1);
             };
         }
-        macro_rules! swapn { // completely dysfunctional
-            ( $idx: expr ) => {
-                let len = self.stack.storage.len() - $idx;
-                let val1 = self.stack.storage[0];
-                let val2 = self.stack.storage[len];
-                self.stack.storage[len] = val1;
-                self.stack.storage[0] = val2;
-                self.pc_increment(1);
-            };
-        }
+        // macro_rules! swapn { // completely dysfunctional
+        //     ( $idx: expr ) => {
+        //         let len = self.stack.storage.len() - $idx;
+        //         let val1 = self.stack.storage[0];
+        //         let val2 = self.stack.storage[len];
+        //         self.stack.storage[len] = val1;
+        //         self.stack.storage[0] = val2;
+        //         self.pc_increment(1);
+        //     };
+        // }
         // macro_rules! pushn { // not implemented
         //     () => {
         //
@@ -138,6 +138,14 @@ impl ExecutionContext {
                 bool_arith_instructor!(==, 1);
                 Ok(())
             },
+            ADDMOD => {
+                polynomial_arith_instructor!(+, %, 1);
+                Ok(())
+            },
+            MULMOD => {
+                polynomial_arith_instructor!(*, %, 1);
+                Ok(())
+            },
             ISZERO => {
                 let num = self.stack.pop()?;
                 if num == U256::zero() {
@@ -146,14 +154,6 @@ impl ExecutionContext {
                     self.stack.push(U256::zero())?;
                 };
                 self.pc_increment(1);
-                Ok(())
-            },
-            ADDMOD => {
-                polynomial_arith_instructor!(+, %, 1);
-                Ok(())
-            },
-            MULMOD => {
-                polynomial_arith_instructor!(*, %, 1);
                 Ok(())
             },
             LT => {
@@ -224,18 +224,70 @@ impl ExecutionContext {
                 dupn!(16);
                 Ok(())
             },
-            SWAP1 => {
-                swapn!(1);
-                Ok(())
-            },
-            SWAP2 => {
-                swapn!(2);
-                Ok(())
-            },
-            SWAP3 => {
-                swapn!(3);
-                Ok(())
-            },
+            // SWAP1 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP2 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP3 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP4 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP5 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP6 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP7 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP8 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP9 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP10 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP11 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP12 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP13 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP14 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP15 => {
+            //     swapn!();
+            //     Ok(())
+            // },
+            // SWAP16 => {
+            //     swapn!();
+            //     Ok(())
+            // },
             POP => {
                 self.stack.pop()?;
                 self.pc_increment(1);
