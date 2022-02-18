@@ -22,7 +22,6 @@ impl Stack {
     pub fn push(&mut self, value: U256) -> Result<()> {
         if self.storage.len() > 1024 {
             return Err(eyre!("Stack Overflow"));
-            // self.storage.pop();
         };
         self.storage.push(value);
         Ok(())

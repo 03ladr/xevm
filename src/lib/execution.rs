@@ -4,6 +4,7 @@ use super::opcode::*;
 use super::memory::Memory;
 use super::stack::Stack;
 
+#[derive(Debug)]
 pub struct ExecutionContext {
     code: Vec<u8>,
     stack: Stack,
