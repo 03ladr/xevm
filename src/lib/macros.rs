@@ -1,16 +1,10 @@
-use std::time::Instant;
-
-
 macro_rules! arith_instructor {
     ( $machine:expr, $op:tt, $inc:expr ) => {
-        let now = Instant::now();
         let val2 = ($machine).stack.pop()?;
         let val1 = ($machine).stack.pop()?;
         let evaluation = val1 $op val2;
         $machine.stack.push(evaluation)?;
         $machine.pc_increment($inc);
-        let elapsed = now.elapsed();
-        println!("Elapsed: {:.2?}", elapsed);
     }
 }
 

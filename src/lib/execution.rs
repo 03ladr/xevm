@@ -3,8 +3,6 @@ use eyre::{eyre, Result};
 use super::opcode::*;
 use super::memory::Memory;
 use super::stack::Stack;
-// use super::macros::arith_instructor;
-use std::time::Instant;
 
 #[derive(Debug)]
 pub struct ExecutionContext {
