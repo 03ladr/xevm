@@ -3,6 +3,8 @@ use eyre::{eyre, Result};
 use super::opcode::*;
 use super::memory::Memory;
 use super::stack::Stack;
+// use super::macros::arith_instructor;
+use std::time::Instant;
 
 #[derive(Debug)]
 pub struct ExecutionContext {
@@ -49,60 +51,6 @@ impl ExecutionContext {
     }
 
     pub fn exec(&mut self, opcode: u8) -> Result<()> {
-        macro_rules! bool_arith_instructor {
-            ( $op:tt, $inc:expr ) => {
-                let mut result: u8 = 0;
-                let val2 = self.stack.pop()?;
-                let val1 = self.stack.pop()?;
-                let evaluation = val1 $op val2;
-                if evaluation == true {
-                    result = 1;
-                };
-                self.stack.push(U256::from(result))?;
-                self.pc_increment($inc);
-            };
-        }
-        macro_rules! arith_instructor {
-            ( $op:tt, $inc:expr ) => {
-                let val2 = self.stack.pop()?;
-                let val1 = self.stack.pop()?;
-                let evaluation = val1 $op val2;
-                self.stack.push(evaluation)?;
-                self.pc_increment($inc);
-            };
-        }
-        macro_rules! polynomial_arith_instructor {
-            ( $op1:tt, $op2: tt, $inc: expr ) => {
-                let val3 = self.stack.pop()?;
-                let val2 = self.stack.pop()?;
-                let val1 = self.stack.pop()?;
-                let evaluation = (val1 $op1 val2) $op2 val3;
-                self.stack.push(evaluation)?;
-                self.pc_increment($inc);
-            };
-        }
-        macro_rules! dupn {
-            ( $idx:expr ) => {
-                let val = self.stack.storage[self.stack.storage.len() - $idx];
-                self.stack.push(val)?;
-                self.pc_increment(1);
-            };
-        }
-        // macro_rules! swapn { // completely dysfunctional
-        //     ( $idx: expr ) => {
-        //         let len = self.stack.storage.len() - $idx;
-        //         let val1 = self.stack.storage[0];
-        //         let val2 = self.stack.storage[len];
-        //         self.stack.storage[len] = val1;
-        //         self.stack.storage[0] = val2;
-        //         self.pc_increment(1);
-        //     };
-        // }
-        // macro_rules! pushn { // not implemented
-        //     () => {
-        //
-        //     }
-        // }
         match opcode {
             STOP => {
                 self.stop();
@@ -116,35 +64,35 @@ impl ExecutionContext {
                 Ok(())
             },
             MUL => {
-                arith_instructor!(*, 1);
+                arith_instructor!(self, *, 1);
                 Ok(())
             },
             ADD => {
-                arith_instructor!(+, 1);
+                arith_instructor!(self, +, 1);
                 Ok(())
             },
             SUB => {
-                arith_instructor!(-, 1);
+                arith_instructor!(self, -, 1);
                 Ok(())
             },
             DIV => {
-                arith_instructor!(/, 1);
+                arith_instructor!(self, /, 1);
                 Ok(())
             },
             MOD => {
-                arith_instructor!(%, 1);
+                arith_instructor!(self, %, 1);
                 Ok(())
             },
             EQ => {
-                bool_arith_instructor!(==, 1);
+                bool_arith_instructor!(self, ==, 1);
                 Ok(())
             },
             ADDMOD => {
-                polynomial_arith_instructor!(+, %, 1);
+                polynomial_arith_instructor!(self, +, %, 1);
                 Ok(())
             },
             MULMOD => {
-                polynomial_arith_instructor!(*, %, 1);
+                polynomial_arith_instructor!(self, *, %, 1);
                 Ok(())
             },
             ISZERO => {
@@ -158,71 +106,71 @@ impl ExecutionContext {
                 Ok(())
             },
             LT => {
-                bool_arith_instructor!(>, 1);
+                bool_arith_instructor!(self, >, 1);
                 Ok(())
             },
             GT => {
-                bool_arith_instructor!(<, 1);
+                bool_arith_instructor!(self, <, 1);
                 Ok(())
             },
             DUP1 => {
-                dupn!(1);
+                dupn!(self, 1);
                 Ok(())
             },
             DUP2 => {
-                dupn!(2);
+                dupn!(self, 2);
                 Ok(())
             },
             DUP3 => {
-                dupn!(3);
+                dupn!(self, 3);
                 Ok(())
             },
             DUP4 => {
-                dupn!(4);
+                dupn!(self, 4);
                 Ok(())
             },
             DUP5 => {
-                dupn!(5);
+                dupn!(self, 5);
                 Ok(())
             },
             DUP6 => {
-                dupn!(6);
+                dupn!(self, 6);
                 Ok(())
             },
             DUP7 => {
-                dupn!(7);
+                dupn!(self, 7);
                 Ok(())
             },
             DUP8 => {
-                dupn!(8);
+                dupn!(self, 8);
                 Ok(())
             },
             DUP9 => {
-                dupn!(10);
+                dupn!(self, 10);
                 Ok(())
             },
             DUP11 => {
-                dupn!(11);
+                dupn!(self, 11);
                 Ok(())
             },
             DUP12 => {
-                dupn!(12);
+                dupn!(self, 12);
                 Ok(())
             },
             DUP13 => {
-                dupn!(13);
+                dupn!(self, 13);
                 Ok(())
             },
             DUP14 => {
-                dupn!(14);
+                dupn!(self, 14);
                 Ok(())
             },
             DUP15 => {
-                dupn!(15);
+                dupn!(self, 15);
                 Ok(())
             },
             DUP16 => {
-                dupn!(16);
+                dupn!(self, 16);
                 Ok(())
             },
             // SWAP1 => {
