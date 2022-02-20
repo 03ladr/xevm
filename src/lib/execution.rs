@@ -122,38 +122,39 @@ impl ExecutionContext {
                 }
             }
         }
+        macro_rules! pushn {
+            ( $n:expr ) => {
+                {
+                    let slice = &self.code[self.pc + 1..=self.pc + $n];
+                    let ret = U256::from_big_endian(&slice);
+                    self.stack.push(ret);
+                    self.pc_increment($n + 1);
+                    Ok(())
+                }
+            }
+        }
         match opcode {
-            STOP => {
-                self.stop();
+            PUSH1 => pushn!(1),
+            PUSH2 => pushn!(2),
+            PUSH3 => pushn!(3),
+            PUSH4 => pushn!(4),
+            PUSH5 => pushn!(5),
+            PUSH6 => pushn!(6),
+            PUSH7 => pushn!(7),
+            PUSH8 => pushn!(8),
+            PUSH9 => pushn!(9),
+            PUSH10 => pushn!(10),
+            PUSH11 => pushn!(11),
+            PUSH12 => pushn!(12),
+            PUSH13 => pushn!(13),
+            PUSH14 => pushn!(14),
+            PUSH15 => pushn!(15),
+            PUSH16 => pushn!(16),
+            POP => {
+                self.stack.pop()?;
                 self.pc_increment(1);
                 Ok(())
             },
-            PUSH1 => {
-                let value = self.read_code(1)?;
-                self.stack.push(U256::from(value))?;
-                self.pc_increment(2);
-                Ok(())
-            },
-            MUL => arith_eval!(overflowing_mul),
-            ADD => arith_eval!(overflowing_add),
-            SUB => arith_eval!(overflowing_sub),
-            DIV => checked_arith_eval!(checked_div),
-            MOD => term_eval!(%),
-            EQ => bool_term_eval!(==),
-            ADDMOD => polynomial_term_eval!(+, %),
-            MULMOD => polynomial_term_eval!(*, %),
-            ISZERO => {
-                let num = self.stack.pop()?;
-                if num == U256::zero() {
-                    self.stack.push(U256::from(1u8))?;
-                } else {
-                    self.stack.push(U256::zero())?;
-                };
-                self.pc_increment(1);
-                Ok(())
-            },
-            LT => bool_term_eval!(>),
-            GT => bool_term_eval!(<),
             DUP1 => dupn!(1),
             DUP2 => dupn!(2),
             DUP3 => dupn!(3),
@@ -186,8 +187,28 @@ impl ExecutionContext {
             // SWAP14 => swapn!(),
             // SWAP15 => swapn!(),
             // SWAP16 => swapn!(),
-            POP => {
-                self.stack.pop()?;
+            MUL => arith_eval!(overflowing_mul),
+            ADD => arith_eval!(overflowing_add),
+            SUB => arith_eval!(overflowing_sub),
+            DIV => checked_arith_eval!(checked_div),
+            MOD => term_eval!(%),
+            ADDMOD => polynomial_term_eval!(+, %),
+            MULMOD => polynomial_term_eval!(*, %),
+            EQ => bool_term_eval!(==),
+            ISZERO => {
+                let num = self.stack.pop()?;
+                if num == U256::zero() {
+                    self.stack.push(U256::from(1u8))?;
+                } else {
+                    self.stack.push(U256::zero())?;
+                };
+                self.pc_increment(1);
+                Ok(())
+            },
+            LT => bool_term_eval!(>),
+            GT => bool_term_eval!(<),
+            STOP => {
+                self.stop();
                 self.pc_increment(1);
                 Ok(())
             },
