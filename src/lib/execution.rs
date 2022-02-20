@@ -49,6 +49,79 @@ impl ExecutionContext {
     }
 
     pub fn exec(&mut self, opcode: u8) -> Result<()> {
+        macro_rules! dupn {
+            ( $idx:expr ) => {
+                {
+                    let val = self.stack.storage[self.stack.storage.len() - $idx];
+                    self.stack.push(val);
+                    self.pc_increment(1);
+                    Ok(())
+                }
+            }
+        }
+        macro_rules! arith_eval {
+            ( $op:tt ) => {
+                {
+                    let val1 = self.stack.pop()?;
+                    let val2 = self.stack.pop()?;
+                    let ret = val1.$op(val2).0;
+                    self.stack.push(ret);
+                    self.pc_increment(1);
+                    Ok(())
+                }
+            }
+        }
+        macro_rules! checked_arith_eval {
+            ( $op:tt ) => {
+                {
+                    let val1 = self.stack.pop()?;
+                    let val2 = self.stack.pop()?;
+                    let ret = val1.$op(val2).unwrap();
+                    self.stack.push(ret);
+                    self.pc_increment(1);
+                    Ok(())
+                }
+            }
+        }
+        macro_rules! term_eval {
+            ( $op:tt ) => {
+                {
+                    let val1 = self.stack.pop()?;
+                    let val2 = self.stack.pop()?;
+                    let ret = val1 $op val2;
+                    self.stack.push(ret);
+                    self.pc_increment(1);
+                    Ok(())
+                }
+            }
+        }
+        macro_rules! bool_term_eval {
+            ( $op:tt ) => {
+                {
+                    let val1 = self.stack.pop()?;
+                    let val2 = self.stack.pop()?;
+                    let mut ret = U256::zero();
+                    let evaluation = val1 $op val2;
+                    if evaluation == true { ret = U256::from(1u8) };
+                    self.stack.push(ret);
+                    self.pc_increment(1);
+                    Ok(())
+                }
+            }
+        }
+        macro_rules! polynomial_term_eval {
+            ( $op1:tt, $op2:tt ) => {
+                {
+                    let val1 = self.stack.pop()?;
+                    let val2 = self.stack.pop()?;
+                    let val3 = self.stack.pop()?;
+                    let ret = (val1 $op1 val2) $op2 val3;
+                    self.stack.push(ret);
+                    self.pc_increment(1);
+                    Ok(())
+                }
+            }
+        }
         match opcode {
             STOP => {
                 self.stop();
@@ -61,38 +134,14 @@ impl ExecutionContext {
                 self.pc_increment(2);
                 Ok(())
             },
-            MUL => {
-                arith_instructor!(self, *, 1);
-                Ok(())
-            },
-            ADD => {
-                arith_instructor!(self, +, 1);
-                Ok(())
-            },
-            SUB => {
-                arith_instructor!(self, -, 1);
-                Ok(())
-            },
-            DIV => {
-                arith_instructor!(self, /, 1);
-                Ok(())
-            },
-            MOD => {
-                arith_instructor!(self, %, 1);
-                Ok(())
-            },
-            EQ => {
-                bool_arith_instructor!(self, ==, 1);
-                Ok(())
-            },
-            ADDMOD => {
-                polynomial_arith_instructor!(self, +, %, 1);
-                Ok(())
-            },
-            MULMOD => {
-                polynomial_arith_instructor!(self, *, %, 1);
-                Ok(())
-            },
+            MUL => arith_eval!(overflowing_mul),
+            ADD => arith_eval!(overflowing_add),
+            SUB => arith_eval!(overflowing_sub),
+            DIV => checked_arith_eval!(checked_div),
+            MOD => term_eval!(%),
+            EQ => bool_term_eval!(==),
+            ADDMOD => polynomial_term_eval!(+, %),
+            MULMOD => polynomial_term_eval!(*, %),
             ISZERO => {
                 let num = self.stack.pop()?;
                 if num == U256::zero() {
@@ -103,138 +152,40 @@ impl ExecutionContext {
                 self.pc_increment(1);
                 Ok(())
             },
-            LT => {
-                bool_arith_instructor!(self, >, 1);
-                Ok(())
-            },
-            GT => {
-                bool_arith_instructor!(self, <, 1);
-                Ok(())
-            },
-            DUP1 => {
-                dupn!(self, 1);
-                Ok(())
-            },
-            DUP2 => {
-                dupn!(self, 2);
-                Ok(())
-            },
-            DUP3 => {
-                dupn!(self, 3);
-                Ok(())
-            },
-            DUP4 => {
-                dupn!(self, 4);
-                Ok(())
-            },
-            DUP5 => {
-                dupn!(self, 5);
-                Ok(())
-            },
-            DUP6 => {
-                dupn!(self, 6);
-                Ok(())
-            },
-            DUP7 => {
-                dupn!(self, 7);
-                Ok(())
-            },
-            DUP8 => {
-                dupn!(self, 8);
-                Ok(())
-            },
-            DUP9 => {
-                dupn!(self, 10);
-                Ok(())
-            },
-            DUP11 => {
-                dupn!(self, 11);
-                Ok(())
-            },
-            DUP12 => {
-                dupn!(self, 12);
-                Ok(())
-            },
-            DUP13 => {
-                dupn!(self, 13);
-                Ok(())
-            },
-            DUP14 => {
-                dupn!(self, 14);
-                Ok(())
-            },
-            DUP15 => {
-                dupn!(self, 15);
-                Ok(())
-            },
-            DUP16 => {
-                dupn!(self, 16);
-                Ok(())
-            },
-            // SWAP1 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP2 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP3 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP4 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP5 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP6 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP7 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP8 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP9 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP10 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP11 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP12 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP13 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP14 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP15 => {
-            //     swapn!();
-            //     Ok(())
-            // },
-            // SWAP16 => {
-            //     swapn!();
-            //     Ok(())
-            // },
+            LT => bool_term_eval!(>),
+            GT => bool_term_eval!(<),
+            DUP1 => dupn!(1),
+            DUP2 => dupn!(2),
+            DUP3 => dupn!(3),
+            DUP4 => dupn!(4),
+            DUP5 => dupn!(5),
+            DUP6 => dupn!(6),
+            DUP7 => dupn!(7),
+            DUP8 => dupn!(8),
+            DUP9 => dupn!(9),
+            DUP10 => dupn!(10),
+            DUP11 => dupn!(11),
+            DUP12 => dupn!(12),
+            DUP13 => dupn!(13),
+            DUP14 => dupn!(14),
+            DUP15 => dupn!(15),
+            DUP16 => dupn!(16),
+            // SWAP1 => swapn!(),
+            // SWAP2 => swapn!(),
+            // SWAP3 => swapn!(),
+            // SWAP4 => swapn!(),
+            // SWAP5 => swapn!(),
+            // SWAP6 => swapn!(),
+            // SWAP7 => swapn!(),
+            // SWAP8 => swapn!(),
+            // SWAP9 => swapn!(),
+            // SWAP10 => swapn!(),
+            // SWAP11 => swapn!(),
+            // SWAP12 => swapn!(),
+            // SWAP13 => swapn!(),
+            // SWAP14 => swapn!(),
+            // SWAP15 => swapn!(),
+            // SWAP16 => swapn!(),
             POP => {
                 self.stack.pop()?;
                 self.pc_increment(1);
