@@ -236,7 +236,7 @@ impl ExecutionContext {
             AND => term_eval!(&),
             OR => term_eval!(|),
             XOR => term_eval!(^),
-            NOT => { let val = self.stack.pop()?; self.stack.push(!val)?; Ok(()) }
+            NOT => { let val = self.stack.pop()?; self.stack.push(!val)?; self.pc_increment(1); Ok(()) }
             GT => bool_term_eval!(<),
             LT => bool_term_eval!(>),
             // SHL => ,
