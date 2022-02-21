@@ -217,6 +217,7 @@ impl ExecutionContext {
             ADD => arith_eval!(overflowing_add),
             SUB => arith_eval!(overflowing_sub),
             DIV => checked_arith_eval!(checked_div),
+            EXP => arith_eval!(overflowing_pow),
             SDIV => signed_term_eval!(/),
             MOD => term_eval!(%),
             SMOD => signed_term_eval!(%),
@@ -236,11 +237,12 @@ impl ExecutionContext {
             AND => term_eval!(&),
             OR => term_eval!(|),
             XOR => term_eval!(^),
-            NOT => { let val = self.stack.pop()?; self.stack.push(!val)?; self.pc_increment(1); Ok(()) }
+            NOT => { let val = self.stack.pop()?; self.stack.push(!val)?; self.pc_increment(1); Ok(()) },
             GT => bool_term_eval!(<),
             LT => bool_term_eval!(>),
-            // SHL => ,
-            // SHR => ,
+            SHL => term_eval!(<<),
+            SHR => term_eval!(>>),
+            PC => { self.stack.push(U256::from(self.pc))?; self.pc_increment(1); Ok(()) },
             MLOAD => {
                 let offset = self.stack.pop()?;
                 let loaded = self.memory.load(offset.as_usize())?;
