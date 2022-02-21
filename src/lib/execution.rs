@@ -10,7 +10,8 @@ pub struct ExecutionContext {
     stack: Stack,
     memory: Memory,
     pc: usize,
-    stopped: bool
+    stopped: bool,
+    returndata: Vec<U256>
 }
 impl ExecutionContext {
     pub fn init(code: Vec<u8>, stack: Stack, memory: Memory) -> Self {
@@ -19,7 +20,8 @@ impl ExecutionContext {
             stack: stack,
             memory: memory,
             pc: 0,
-            stopped: false
+            stopped: false,
+            returndata: Vec::with_capacity(1024)
         }
     }
 
@@ -261,6 +263,14 @@ impl ExecutionContext {
                 let offset = self.stack.pop()?;
                 let value = self.stack.pop()?;
                 self.memory.store(offset.as_usize(), value & U256::from(0xFF))?;
+                self.pc_increment(1);
+                Ok(())
+            },
+            RETURN => {
+                let offset = self.stack.pop()?.as_usize();
+                let length = self.stack.pop()?.as_usize();
+                self.returndata = self.memory.storage[offset..offset + length].to_vec();
+                self.stop();
                 self.pc_increment(1);
                 Ok(())
             },

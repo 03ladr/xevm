@@ -69,7 +69,6 @@ pub const LT: u8 = 0x10;
 pub const SHL: u8 = 0x1A;
 pub const SHR: u8 = 0x1B;
 // pub const SAR: u8 = 0x1C;
-pub const PC: u8 = 0x58;
 // Memory
 pub const MLOAD: u8 = 0x51;
 pub const MSTORE: u8 = 0x52;
@@ -77,3 +76,4 @@ pub const MSTORE8: u8 = 0x53;
 // Other
 pub const RETURN: u8 = 0xF3;
 pub const STOP: u8 = 0x00;
+pub const PC: u8 = 0x58;
