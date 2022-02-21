@@ -1,4 +1,4 @@
-use ethers::types::U256;
+use ethers::types::{U256, I256};
 use eyre::{eyre, Result};
 use super::opcode::*;
 use super::memory::Memory;
@@ -74,7 +74,12 @@ impl ExecutionContext {
         macro_rules! swapn {
             ( $n:expr ) => {
                 {
-
+                    let top = self.stack.storage[0];
+                    let swp = self.stack.storage[$n];
+                    self.stack.storage[0] = swp;
+                    self.stack.storage[$n] = top;
+                    self.pc_increment(1);
+                    Ok(())
                 }
             }
         }
@@ -110,6 +115,18 @@ impl ExecutionContext {
                     let val2 = self.stack.pop()?;
                     let ret = val1 $op val2;
                     self.stack.push(ret)?;
+                    self.pc_increment(1);
+                    Ok(())
+                }
+            }
+        }
+        macro_rules! signed_term_eval {
+            ( $op: tt ) => {
+                {
+                    let val1 = I256::try_from(self.stack.pop()?)?;
+                    let val2 = I256::try_from(self.stack.pop()?)?;
+                    let ret = val1 $op val2;
+                    self.stack.push(U256::try_from(ret)?)?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -180,27 +197,29 @@ impl ExecutionContext {
             DUP14 => dupn!(14),
             DUP15 => dupn!(15),
             DUP16 => dupn!(16),
-            // SWAP1 => swapn!(),
-            // SWAP2 => swapn!(),
-            // SWAP3 => swapn!(),
-            // SWAP4 => swapn!(),
-            // SWAP5 => swapn!(),
-            // SWAP6 => swapn!(),
-            // SWAP7 => swapn!(),
-            // SWAP8 => swapn!(),
-            // SWAP9 => swapn!(),
-            // SWAP10 => swapn!(),
-            // SWAP11 => swapn!(),
-            // SWAP12 => swapn!(),
-            // SWAP13 => swapn!(),
-            // SWAP14 => swapn!(),
-            // SWAP15 => swapn!(),
-            // SWAP16 => swapn!(),
+            SWAP1 => swapn!(1),
+            SWAP2 => swapn!(2),
+            SWAP3 => swapn!(3),
+            SWAP4 => swapn!(4),
+            SWAP5 => swapn!(5),
+            SWAP6 => swapn!(6),
+            SWAP7 => swapn!(7),
+            SWAP8 => swapn!(8),
+            SWAP9 => swapn!(9),
+            SWAP10 => swapn!(10),
+            SWAP11 => swapn!(11),
+            SWAP12 => swapn!(12),
+            SWAP13 => swapn!(13),
+            SWAP14 => swapn!(14),
+            SWAP15 => swapn!(15),
+            SWAP16 => swapn!(16),
             MUL => arith_eval!(overflowing_mul),
             ADD => arith_eval!(overflowing_add),
             SUB => arith_eval!(overflowing_sub),
             DIV => checked_arith_eval!(checked_div),
+            SDIV => signed_term_eval!(/),
             MOD => term_eval!(%),
+            SMOD => signed_term_eval!(%),
             ADDMOD => polynomial_term_eval!(+, %),
             MULMOD => polynomial_term_eval!(*, %),
             EQ => bool_term_eval!(==),
@@ -220,6 +239,11 @@ impl ExecutionContext {
             NOT => { let val = self.stack.pop()?; self.stack.push(!val)?; Ok(()) }
             GT => bool_term_eval!(<),
             LT => bool_term_eval!(>),
+            // SHL => ,
+            // SHR => ,
+            // MLOAD => {
+            //
+            // }
             STOP => {
                 self.stop();
                 self.pc_increment(1);
