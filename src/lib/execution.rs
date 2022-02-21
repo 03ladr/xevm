@@ -42,20 +42,39 @@ impl ExecutionContext {
     pub fn run(&mut self) -> Result<()> {
         while !self.stopped {
             let opcode: u8 = self.read_code(0)?;
+            println!("Opcode: {} @ PC: {}", opcode, self.pc);
             self.exec(opcode)?;
-            println!("Opcode: {} @ PC: {}\nStack: {:?}", opcode, self.pc, self.stack.storage);
+            println!("Stack: {:?}", self.stack.storage);
         }
         Ok(())
     }
 
     pub fn exec(&mut self, opcode: u8) -> Result<()> {
-        macro_rules! dupn {
-            ( $idx:expr ) => {
+        macro_rules! pushn {
+            ( $n:expr ) => {
                 {
-                    let val = self.stack.storage[self.stack.storage.len() - $idx];
-                    self.stack.push(val);
+                    let slice = &self.code[self.pc + 1..=self.pc + $n];
+                    let ret = U256::from_big_endian(&slice);
+                    self.stack.push(ret)?;
+                    self.pc_increment($n + 1);
+                    Ok(())
+                }
+            }
+        }
+        macro_rules! dupn {
+            ( $n:expr ) => {
+                {
+                    let val = self.stack.storage[self.stack.storage.len() - $n];
+                    self.stack.push(val)?;
                     self.pc_increment(1);
                     Ok(())
+                }
+            }
+        }
+        macro_rules! swapn {
+            ( $n:expr ) => {
+                {
+
                 }
             }
         }
@@ -64,8 +83,9 @@ impl ExecutionContext {
                 {
                     let val1 = self.stack.pop()?;
                     let val2 = self.stack.pop()?;
-                    let ret = val1.$op(val2).0;
-                    self.stack.push(ret);
+                    let ret = val1.$op(val2);
+                    if ret.1 { self.stop(); return Err(eyre!("Overflow error")); };
+                    self.stack.push(ret.0)?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -77,7 +97,7 @@ impl ExecutionContext {
                     let val1 = self.stack.pop()?;
                     let val2 = self.stack.pop()?;
                     let ret = val1.$op(val2).unwrap();
-                    self.stack.push(ret);
+                    self.stack.push(ret)?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -89,7 +109,7 @@ impl ExecutionContext {
                     let val1 = self.stack.pop()?;
                     let val2 = self.stack.pop()?;
                     let ret = val1 $op val2;
-                    self.stack.push(ret);
+                    self.stack.push(ret)?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -102,8 +122,8 @@ impl ExecutionContext {
                     let val2 = self.stack.pop()?;
                     let mut ret = U256::zero();
                     let evaluation = val1 $op val2;
-                    if evaluation == true { ret = U256::from(1u8) };
-                    self.stack.push(ret);
+                    if evaluation { ret = U256::from(1u8) };
+                    self.stack.push(ret)?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -116,19 +136,8 @@ impl ExecutionContext {
                     let val2 = self.stack.pop()?;
                     let val3 = self.stack.pop()?;
                     let ret = (val1 $op1 val2) $op2 val3;
-                    self.stack.push(ret);
+                    self.stack.push(ret)?;
                     self.pc_increment(1);
-                    Ok(())
-                }
-            }
-        }
-        macro_rules! pushn {
-            ( $n:expr ) => {
-                {
-                    let slice = &self.code[self.pc + 1..=self.pc + $n];
-                    let ret = U256::from_big_endian(&slice);
-                    self.stack.push(ret);
-                    self.pc_increment($n + 1);
                     Ok(())
                 }
             }
@@ -196,8 +205,8 @@ impl ExecutionContext {
             MULMOD => polynomial_term_eval!(*, %),
             EQ => bool_term_eval!(==),
             ISZERO => {
-                let num = self.stack.pop()?;
-                if num == U256::zero() {
+                let val = self.stack.pop()?;
+                if val == U256::zero() {
                     self.stack.push(U256::from(1u8))?;
                 } else {
                     self.stack.push(U256::zero())?;
@@ -205,8 +214,12 @@ impl ExecutionContext {
                 self.pc_increment(1);
                 Ok(())
             },
-            LT => bool_term_eval!(>),
+            AND => term_eval!(&),
+            OR => term_eval!(|),
+            XOR => term_eval!(^),
+            NOT => { let val = self.stack.pop()?; self.stack.push(!val)?; Ok(()) }
             GT => bool_term_eval!(<),
+            LT => bool_term_eval!(>),
             STOP => {
                 self.stop();
                 self.pc_increment(1);
