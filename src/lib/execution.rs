@@ -266,6 +266,17 @@ impl ExecutionContext {
                 self.pc_increment(1);
                 Ok(())
             },
+            JUMP => {
+                let dest = self.stack.pop()?;
+                self.pc = dest.as_usize();
+                Ok(())
+            },
+            JUMPI => {
+                let dest = self.stack.pop()?;
+                let cond = self.stack.pop()?;
+                if cond.is_zero() {self.pc_increment(1); Ok(())}
+                else {self.pc = dest.as_usize(); Ok(())}
+            },
             RETURN => {
                 let offset = self.stack.pop()?.as_usize();
                 let length = self.stack.pop()?.as_usize();

@@ -73,6 +73,9 @@ pub const SHR: u8 = 0x1B;
 pub const MLOAD: u8 = 0x51;
 pub const MSTORE: u8 = 0x52;
 pub const MSTORE8: u8 = 0x53;
+// Execution Context
+pub const JUMP: u8 = 0x56;
+pub const JUMPI: u8 = 0x57;
 // Other
 pub const RETURN: u8 = 0xF3;
 pub const STOP: u8 = 0x00;
