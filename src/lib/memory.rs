@@ -3,18 +3,18 @@ use eyre::{eyre, Result};
 
 #[derive(Debug)]
 pub struct Memory {
-    storage: Vec<U256>
+    pub storage: Vec<U256>
 }
 impl Memory {
     pub fn init() -> Self {
-        Memory { storage: Vec::with_capacity(1024) }
+        Memory { storage: Vec::with_capacity(4096) }
     }
 
     pub fn store(&mut self, offset: usize, value: U256) -> Result<()> {
         if offset >= self.storage.len() {
-            self.storage.resize(offset + 1, U256::zero());
+            self.storage.resize(offset, U256::zero());
         };
-        self.storage[offset] = value;
+        self.storage[offset - 1] = value;
         Ok(())
     }
 

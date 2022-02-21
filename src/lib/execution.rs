@@ -44,7 +44,7 @@ impl ExecutionContext {
             let opcode: u8 = self.read_code(0)?;
             println!("Opcode: {} @ PC: {}", opcode, self.pc);
             self.exec(opcode)?;
-            println!("Stack: {:?}", self.stack.storage);
+            println!("Stack: {:?}\nMemory: {:?}", self.stack.storage, self.memory.storage);
         }
         Ok(())
     }
@@ -241,9 +241,27 @@ impl ExecutionContext {
             LT => bool_term_eval!(>),
             // SHL => ,
             // SHR => ,
-            // MLOAD => {
-            //
-            // }
+            MLOAD => {
+                let offset = self.stack.pop()?;
+                let loaded = self.memory.load(offset.as_usize())?;
+                self.stack.push(loaded)?;
+                self.pc_increment(1);
+                Ok(())
+            },
+            MSTORE => {
+                let offset = self.stack.pop()?;
+                let value = self.stack.pop()?;
+                self.memory.store(offset.as_usize(), value)?;
+                self.pc_increment(1);
+                Ok(())
+            },
+            MSTORE8 => {
+                let offset = self.stack.pop()?;
+                let value = self.stack.pop()?;
+                self.memory.store(offset.as_usize(), value & U256::from(0xFF))?;
+                self.pc_increment(1);
+                Ok(())
+            },
             STOP => {
                 self.stop();
                 self.pc_increment(1);
