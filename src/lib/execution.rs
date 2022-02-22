@@ -10,6 +10,7 @@ pub struct ExecutionContext {
     stack: Stack,
     memory: Memory,
     pc: usize,
+    gas_limit: usize,
     stopped: bool,
     returndata: Vec<U256>
 }
@@ -20,9 +21,16 @@ impl ExecutionContext {
             stack: stack,
             memory: memory,
             pc: 0,
+            gas_limit: 999999999,
             stopped: false,
             returndata: Vec::with_capacity(1024)
         }
+    }
+
+    pub fn sub_gas(&mut self, by: usize) -> Result<(), StatusCode> {
+        if self.gas_limit - by <= 0 { return Err(StatusCode::OutOfGas); };
+        self.gas_limit -= by;
+        Ok(())
     }
 
     pub fn stop(&mut self) -> () {
@@ -54,7 +62,7 @@ impl ExecutionContext {
             println!("Opcode: {} @ PC: {}", opcode, self.pc);
             match self.exec(opcode) {
                 Err(e) => return Err(e),
-                Ok(_) =>()
+                Ok(_) => ()
             };
             println!("Stack: {:?}\nMemory: {:?}", self.stack.peek_full(), self.memory.load_full());
         }
@@ -73,6 +81,7 @@ impl ExecutionContext {
                 }
             }
         }
+
         macro_rules! dupn {
             ( $n:expr ) => {
                 {
