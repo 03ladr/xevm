@@ -4,8 +4,7 @@
 i am refining my rust skill (and ethdev intuitiveness) through implementing the EVM.
 
 ### current progress
-implemented opcodes only support basic arithmetic. more will be added.
+87 opcodes implemented.
 
 ### immediate todo
 - cleanup / revisions
-- proper error handling
