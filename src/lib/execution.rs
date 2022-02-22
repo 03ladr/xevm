@@ -270,9 +270,9 @@ impl ExecutionContext {
                 Ok(())
             },
             MSTORE8 => {
-                let offset = self.stack.pop()?;
+                let offset = self.stack.pop()?.as_usize();
                 let value = self.stack.pop()?;
-                self.memory.store(offset.as_usize(), value & U256::from(0xFF))?;
+                self.memory.store(offset, value & U256::from(0xFF))?;
                 self.pc_increment(1);
                 Ok(())
             },
@@ -291,12 +291,11 @@ impl ExecutionContext {
                 let length = self.stack.pop()?.as_usize();
                 self.returndata = self.memory.load_range(offset, length)?;
                 self.stop();
-                self.pc_increment(1);
-                Ok(())
+                println!("{:?}", self.returndata);
+                Err(StatusCode::Completion)
             },
             STOP => {
                 self.stop();
-                self.pc_increment(1);
                 Err(StatusCode::Completion)
             },
             _ => Err(StatusCode::UndefinedInstruction)
