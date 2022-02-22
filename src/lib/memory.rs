@@ -30,7 +30,7 @@ impl Memory {
         if offset >= self.storage.len() {
             Err(StatusCode::InvalidMemoryAccess)
         } else {
-            Ok(self.storage[offset..=offset + length].to_vec())
+            Ok(self.storage[offset..offset + length].to_vec())
         }
     }
 

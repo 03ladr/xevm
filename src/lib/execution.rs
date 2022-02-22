@@ -291,7 +291,7 @@ impl ExecutionContext {
                 let length = self.stack.pop()?.as_usize();
                 self.returndata = self.memory.load_range(offset, length)?;
                 self.stop();
-                println!("{:?}", self.returndata);
+                println!("Return Data: {:?}", self.returndata);
                 Err(StatusCode::Completion)
             },
             STOP => {

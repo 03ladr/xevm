@@ -33,14 +33,14 @@ impl Stack {
 
     pub fn push_to(&mut self, idx: usize, value: U256) -> Result<(), StatusCode> {
         if self.storage.len() > 1024 { return Err(StatusCode::StackOverflow); }
-        else if idx >= self.storage.len() { return Err(StatusCode::StackOverflow); };
+        else if idx >= self.storage.len() { return Err(StatusCode::ArgOutOfRange); };
         self.storage.push(value);
         Ok(())
     }
 
     pub fn peek(&self, idx: usize) -> Result<U256, StatusCode> {
         if idx >= self.storage.len() {
-            return Err(StatusCode::StackOverflow);
+            return Err(StatusCode::ArgOutOfRange);
         };
         Ok(self.storage[idx])
     }
