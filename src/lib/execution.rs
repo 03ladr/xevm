@@ -56,7 +56,7 @@ impl ExecutionContext {
                 Err(e) => return Err(e),
                 Ok(_) =>()
             };
-            println!("Stack: {:?}\nMemory: {:?}", self.stack.storage, self.memory.storage);
+            println!("Stack: {:?}\nMemory: {:?}", self.stack.peek_full(), self.memory.load_full());
         }
         Ok(())
     }
@@ -76,7 +76,7 @@ impl ExecutionContext {
         macro_rules! dupn {
             ( $n:expr ) => {
                 {
-                    let val = self.stack.storage[self.stack.storage.len() - $n];
+                    let val = self.stack.peek(self.stack.len() - $n)?;
                     self.stack.push(val)?;
                     self.pc_increment(1);
                     Ok(())
@@ -86,10 +86,10 @@ impl ExecutionContext {
         macro_rules! swapn {
             ( $n:expr ) => {
                 {
-                    let top = self.stack.storage[0];
-                    let swp = self.stack.storage[$n];
-                    self.stack.storage[0] = swp;
-                    self.stack.storage[$n] = top;
+                    let top = self.stack.peek(0)?;
+                    let swp = self.stack.peek($n)?;
+                    self.stack.push_to(0, swp)?;
+                    self.stack.push_to($n, top)?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -289,7 +289,7 @@ impl ExecutionContext {
             RETURN => {
                 let offset = self.stack.pop()?.as_usize();
                 let length = self.stack.pop()?.as_usize();
-                self.returndata = self.memory.storage[offset..offset + length].to_vec();
+                self.returndata = self.memory.load_range(offset, length)?;
                 self.stop();
                 self.pc_increment(1);
                 Ok(())

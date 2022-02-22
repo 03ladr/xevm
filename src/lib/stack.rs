@@ -3,7 +3,7 @@ use super::statuscode::StatusCode;
 
 #[derive(Debug)]
 pub struct Stack {
-    pub storage: Vec<U256>,
+    storage: Vec<U256>,
 }
 impl Stack {
     pub fn init() -> Self {
@@ -19,11 +19,33 @@ impl Stack {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.storage.len()
+    }
+
     pub fn push(&mut self, value: U256) -> Result<(), StatusCode> {
         if self.storage.len() > 1024 {
-            return Err(StatusCode::StackUnderflow)
+            return Err(StatusCode::StackOverflow);
         };
         self.storage.push(value);
         Ok(())
+    }
+
+    pub fn push_to(&mut self, idx: usize, value: U256) -> Result<(), StatusCode> {
+        if self.storage.len() > 1024 { return Err(StatusCode::StackOverflow); }
+        else if idx >= self.storage.len() { return Err(StatusCode::StackOverflow); };
+        self.storage.push(value);
+        Ok(())
+    }
+
+    pub fn peek(&self, idx: usize) -> Result<U256, StatusCode> {
+        if idx >= self.storage.len() {
+            return Err(StatusCode::StackOverflow);
+        };
+        Ok(self.storage[idx])
+    }
+
+    pub fn peek_full(&mut self) -> &Vec<U256> {
+        &self.storage
     }
 }

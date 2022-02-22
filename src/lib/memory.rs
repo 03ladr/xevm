@@ -3,7 +3,7 @@ use super::statuscode::StatusCode;
 
 #[derive(Debug)]
 pub struct Memory {
-    pub storage: Vec<U256>
+    storage: Vec<U256>
 }
 impl Memory {
     pub fn init() -> Self {
@@ -24,5 +24,17 @@ impl Memory {
         } else {
             Ok(self.storage[offset])
         }
+    }
+
+    pub fn load_range(&mut self, offset: usize, length: usize) -> Result<Vec<U256>, StatusCode> {
+        if offset >= self.storage.len() {
+            Err(StatusCode::InvalidMemoryAccess)
+        } else {
+            Ok(self.storage[offset..offset + length].to_vec())
+        }
+    }
+
+    pub fn load_full(&mut self) -> &Vec<U256> {
+        &self.storage
     }
 }
