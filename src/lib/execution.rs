@@ -29,6 +29,13 @@ impl ExecutionContext {
         self.stopped = true
     }
 
+    pub fn pc_jump(&mut self, dest: usize) -> Result<(), StatusCode> {
+        if dest >= self.code.len() {
+            return Err(StatusCode::BadJumpDest);
+        };
+        Ok(())
+    }
+
     pub fn pc_increment(&mut self, idx: usize) -> () {
         self.pc = self.pc + idx
     }
@@ -271,14 +278,13 @@ impl ExecutionContext {
             },
             JUMP => {
                 let dest = self.stack.pop()?;
-                self.pc = dest.as_usize();
-                Ok(())
+                self.pc_jump(dest.as_usize())
             },
             JUMPI => {
                 let dest = self.stack.pop()?;
                 let cond = self.stack.pop()?;
-                if cond.is_zero() {self.pc_increment(1); Ok(())}
-                else {self.pc = dest.as_usize(); Ok(())}
+                if cond.is_zero() { self.pc_increment(1); Ok(()) }
+                else { self.pc_jump(dest.as_usize()) }
             },
             RETURN => {
                 let offset = self.stack.pop()?.as_usize();
