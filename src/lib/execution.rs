@@ -188,11 +188,7 @@ impl ExecutionContext {
             PUSH14 => pushn!(14),
             PUSH15 => pushn!(15),
             PUSH16 => pushn!(16),
-            POP => {
-                self.stack.pop()?;
-                self.pc_increment(1);
-                Ok(())
-            },
+            POP => { self.stack.pop()?; self.pc_increment(1); Ok(()) },
             DUP1 => dupn!(1),
             DUP2 => dupn!(2),
             DUP3 => dupn!(3),
@@ -238,11 +234,8 @@ impl ExecutionContext {
             EQ => bool_term_eval!(==),
             ISZERO => {
                 let val = self.stack.pop()?;
-                if val == U256::zero() {
-                    self.stack.push(U256::from(1u8))?;
-                } else {
-                    self.stack.push(U256::zero())?;
-                };
+                if val == U256::zero() { self.stack.push(U256::from(1u8))?; }
+                else { self.stack.push(U256::zero())?; };
                 self.pc_increment(1);
                 Ok(())
             },
