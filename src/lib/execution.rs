@@ -1,5 +1,5 @@
 use ethers::types::{U256, I256};
-use eyre::{eyre, Result};
+use super::statuscode::StatusCode;
 use super::opcode::*;
 use super::memory::Memory;
 use super::stack::Stack;
@@ -33,25 +33,28 @@ impl ExecutionContext {
         self.pc = self.pc + idx
     }
 
-    pub fn read_code(&mut self, idx: usize) -> Result<u8> {
+    pub fn read_code(&mut self, idx: usize) -> Result<u8, StatusCode> {
         if self.pc + idx >= self.code.len() {
-            return Ok(00);
+            return Err(StatusCode::Completion);
         };
         let value = self.code[self.pc + idx];
         Ok(value)
     }
 
-    pub fn run(&mut self) -> Result<()> {
+    pub fn run(&mut self) -> Result<(), StatusCode> {
         while !self.stopped {
             let opcode: u8 = self.read_code(0)?;
             println!("Opcode: {} @ PC: {}", opcode, self.pc);
-            self.exec(opcode)?;
+            match self.exec(opcode) {
+                Err(e) => return Err(e),
+                Ok(_) =>()
+            };
             println!("Stack: {:?}\nMemory: {:?}", self.stack.storage, self.memory.storage);
         }
         Ok(())
     }
 
-    pub fn exec(&mut self, opcode: u8) -> Result<()> {
+    pub fn exec(&mut self, opcode: u8) -> Result<(), StatusCode> {
         macro_rules! pushn {
             ( $n:expr ) => {
                 {
@@ -88,10 +91,10 @@ impl ExecutionContext {
         macro_rules! arith_eval {
             ( $op:tt ) => {
                 {
-                    let val1 = self.stack.pop()?;
-                    let val2 = self.stack.pop()?;
+                    let val1: U256 = self.stack.pop()?;
+                    let val2: U256 = self.stack.pop()?;
                     let ret = val1.$op(val2);
-                    if ret.1 { self.stop(); return Err(eyre!("Overflow error")); };
+                    if ret.1 { self.stop(); return Err(StatusCode::Revert); };
                     self.stack.push(ret.0)?;
                     self.pc_increment(1);
                     Ok(())
@@ -125,10 +128,10 @@ impl ExecutionContext {
         macro_rules! signed_term_eval {
             ( $op: tt ) => {
                 {
-                    let val1 = I256::try_from(self.stack.pop()?)?;
-                    let val2 = I256::try_from(self.stack.pop()?)?;
+                    let val1 = I256::try_from(self.stack.pop()?).unwrap();
+                    let val2 = I256::try_from(self.stack.pop()?).unwrap();
                     let ret = val1 $op val2;
-                    self.stack.push(U256::try_from(ret)?)?;
+                    self.stack.push(U256::try_from(ret).unwrap())?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -288,9 +291,9 @@ impl ExecutionContext {
             STOP => {
                 self.stop();
                 self.pc_increment(1);
-                Ok(())
+                Err(StatusCode::Completion)
             },
-            _ => Err(eyre!("Unknown Opcode: {}", opcode))
+            _ => Err(StatusCode::UndefinedInstruction)
         }
     }
 }

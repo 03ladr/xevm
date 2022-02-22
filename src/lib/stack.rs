@@ -1,5 +1,5 @@
 use ethers::types::U256;
-use eyre::{eyre, Result};
+use super::statuscode::StatusCode;
 
 #[derive(Debug)]
 pub struct Stack {
@@ -10,18 +10,18 @@ impl Stack {
         Stack { storage: Vec::with_capacity(1024) }
     }
 
-    pub fn pop(&mut self) -> Result<U256> {
+    pub fn pop(&mut self) -> Result<U256, StatusCode> {
         match self.storage.pop() {
             Some(n) => {
                 Ok(n)
             },
-            None => Err(eyre!("Stack Underflow"))
+            None => Err(StatusCode::StackUnderflow)
         }
     }
 
-    pub fn push(&mut self, value: U256) -> Result<()> {
+    pub fn push(&mut self, value: U256) -> Result<(), StatusCode> {
         if self.storage.len() > 1024 {
-            return Err(eyre!("Stack Overflow"));
+            return Err(StatusCode::StackUnderflow)
         };
         self.storage.push(value);
         Ok(())

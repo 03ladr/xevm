@@ -1,5 +1,5 @@
 use ethers::types::U256;
-use eyre::{eyre, Result};
+use super::statuscode::StatusCode;
 
 #[derive(Debug)]
 pub struct Memory {
@@ -10,7 +10,7 @@ impl Memory {
         Memory { storage: Vec::with_capacity(4096) }
     }
 
-    pub fn store(&mut self, offset: usize, value: U256) -> Result<()> {
+    pub fn store(&mut self, offset: usize, value: U256) -> Result<(), StatusCode> {
         if offset >= self.storage.len() {
             self.storage.resize(offset + 1, U256::zero());
         };
@@ -18,9 +18,9 @@ impl Memory {
         Ok(())
     }
 
-    pub fn load(&mut self, offset: usize) -> Result<U256> {
+    pub fn load(&mut self, offset: usize) -> Result<U256, StatusCode> {
         if offset >= self.storage.len() {
-            Err(eyre!("Memory index out of bounds"))
+            Err(StatusCode::InvalidMemoryAccess)
         } else {
             Ok(self.storage[offset])
         }
