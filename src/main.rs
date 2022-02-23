@@ -4,13 +4,18 @@ use lib::memory::Memory;
 use lib::statuscode::StatusCode;
 use lib::stack::Stack;
 use lib::execution::ExecutionContext;
+use std::env;
 
+// cargo run {gas_limit} {code}
 fn main() -> Result<(), StatusCode> {
-    println!("Enter code to execute below:");
+    let args: Vec<String> = env::args().collect();
     let stack = Stack::init();
     let memory = Memory::init();
-    let mut code_input = String::new();
-    std::io::stdin().read_line(&mut code_input).unwrap();
-    let mut executor = ExecutionContext::init(hex::decode(code_input.trim()).unwrap(), stack, memory);
+    let mut executor = ExecutionContext::init(
+        hex::decode(&args[2]).unwrap(),
+        stack,
+        memory,
+        str::parse::<usize>(&args[1]).unwrap()
+    );
     executor.run()
 }

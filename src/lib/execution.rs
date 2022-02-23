@@ -4,7 +4,6 @@ use super::opcode::*;
 use super::memory::Memory;
 use super::stack::Stack;
 
-#[derive(Debug)]
 pub struct ExecutionContext {
     code: Vec<u8>,
     stack: Stack,
@@ -15,20 +14,20 @@ pub struct ExecutionContext {
     returndata: Vec<U256>
 }
 impl ExecutionContext {
-    pub fn init(code: Vec<u8>, stack: Stack, memory: Memory) -> Self {
+    pub fn init(code: Vec<u8>, stack: Stack, memory: Memory, gas_limit: usize) -> Self {
         ExecutionContext {
             code: code,
             stack: stack,
             memory: memory,
             pc: 0,
-            gas_limit: 999999999,
+            gas_limit: gas_limit,
             stopped: false,
             returndata: Vec::with_capacity(1024)
         }
     }
 
     pub fn sub_gas(&mut self, by: usize) -> Result<(), StatusCode> {
-        if self.gas_limit - by <= 0 { return Err(StatusCode::OutOfGas); };
+        if by > self.gas_limit { return Err(StatusCode::OutOfGas); };
         self.gas_limit -= by;
         Ok(())
     }
@@ -41,6 +40,7 @@ impl ExecutionContext {
         if dest >= self.code.len() {
             return Err(StatusCode::BadJumpDest);
         };
+        self.pc = dest;
         Ok(())
     }
 
@@ -64,7 +64,8 @@ impl ExecutionContext {
                 Err(e) => return Err(e),
                 Ok(_) => ()
             };
-            println!("Stack: {:?}\nMemory: {:?}", self.stack.peek_full(), self.memory.load_full());
+            self.sub_gas(gas_fetch(opcode))?;
+            println!("Stack: {:?}\nMemory: {:?}\nGas: {}", self.stack.peek_full(), self.memory.load_full(), self.gas_limit);
         }
         Ok(())
     }
@@ -257,6 +258,7 @@ impl ExecutionContext {
             SHL => term_eval!(<<),
             SHR => term_eval!(>>),
             PC => { self.stack.push(U256::from(self.pc))?; self.pc_increment(1); Ok(()) },
+            GAS => { self.stack.push(U256::from(self.gas_limit))?; self.pc_increment(1); Ok(()) }
             MLOAD => {
                 let offset = self.stack.pop()?;
                 let loaded = self.memory.load(offset.as_usize())?;

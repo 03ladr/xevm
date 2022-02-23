@@ -1,7 +1,6 @@
 use ethers::types::U256;
 use super::statuscode::StatusCode;
 
-#[derive(Debug)]
 pub struct Stack {
     storage: Vec<U256>,
 }

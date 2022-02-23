@@ -860,16 +860,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eyre"
-version = "0.6.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc225d8f637923fe585089fcf03e705c222131232d2c1fb622e84ecf725d0eb8"
-dependencies = [
- "indenter",
- "once_cell",
-]
-
-[[package]]
 name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1278,12 +1268,6 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[package]]
-name = "indenter"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
@@ -1865,7 +1849,6 @@ name = "revm"
 version = "0.1.0"
 dependencies = [
  "ethers",
- "eyre",
  "hex",
 ]
 
