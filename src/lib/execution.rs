@@ -1,8 +1,10 @@
 use ethers::types::{U256, I256};
+use sha3::{Digest, Keccak256};
 use super::statuscode::StatusCode;
 use super::opcode::*;
 use super::memory::Memory;
 use super::stack::Stack;
+use byte_slice_cast::AsByteSlice;
 
 pub struct ExecutionContext {
     code: Vec<u8>,
@@ -11,7 +13,7 @@ pub struct ExecutionContext {
     pc: usize,
     gas_limit: usize,
     stopped: bool,
-    returndata: Vec<U256>
+    returndata: Vec<u8>
 }
 impl ExecutionContext {
     pub fn init(code: Vec<u8>, stack: Stack, memory: Memory, gas_limit: usize) -> Self {
@@ -181,6 +183,7 @@ impl ExecutionContext {
                 }
             }
         }
+
         match opcode {
             PUSH1 => pushn!(1),
             PUSH2 => pushn!(2),
@@ -260,23 +263,23 @@ impl ExecutionContext {
             PC => { self.stack.push(U256::from(self.pc))?; self.pc_increment(1); Ok(()) },
             GAS => { self.stack.push(U256::from(self.gas_limit))?; self.pc_increment(1); Ok(()) }
             MLOAD => {
-                let offset = self.stack.pop()?;
-                let loaded = self.memory.load(offset.as_usize())?;
-                self.stack.push(loaded)?;
+                let offset = self.stack.pop()?.as_usize();
+                let loaded = self.memory.load(offset)?;
+                self.stack.push(U256::from_big_endian(loaded.as_slice()))?;
                 self.pc_increment(1);
                 Ok(())
             },
             MSTORE => {
-                let offset = self.stack.pop()?;
+                let offset = self.stack.pop()?.as_usize();
                 let value = self.stack.pop()?;
-                self.memory.store(offset.as_usize(), value)?;
+                self.memory.store(offset, value)?;
                 self.pc_increment(1);
                 Ok(())
             },
             MSTORE8 => {
                 let offset = self.stack.pop()?.as_usize();
-                let value = self.stack.pop()?;
-                self.memory.store(offset, value & U256::from(0xFF))?;
+                let value = self.stack.pop()?.as_usize();
+                self.memory.store(offset, U256::from(value & 0xFF))?;
                 self.pc_increment(1);
                 Ok(())
             },
@@ -301,6 +304,17 @@ impl ExecutionContext {
             STOP => {
                 self.stop();
                 Err(StatusCode::Completion)
+            },
+            SHA3 => {
+                let offset = self.stack.pop()?.as_usize();
+                let length = self.stack.pop()?.as_usize();
+                let value = self.memory.load_range(offset, length)?;
+                let mut hasher = Keccak256::default();
+                hasher.update(value.as_slice());
+                let ret = U256::from(hasher.finalize().to_vec().as_slice());
+                self.stack.push(ret)?;
+                self.pc_increment(1);
+                Ok(())
             },
             _ => Err(StatusCode::UndefinedInstruction)
         }

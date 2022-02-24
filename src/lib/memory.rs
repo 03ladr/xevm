@@ -1,39 +1,41 @@
-use ethers::types::U256;
 use super::statuscode::StatusCode;
+use ethers::types::U256;
 
 pub struct Memory {
-    storage: Vec<U256>
+    storage: Vec<u8>
 }
 impl Memory {
     pub fn init() -> Self {
         Memory { storage: Vec::with_capacity(4096) }
     }
 
+
+    pub fn load(&mut self, offset: usize) -> Result<Vec<u8>, StatusCode> {
+        if offset + 32 >= self.storage.len() {
+            Err(StatusCode::InvalidMemoryAccess)
+        } else {
+            Ok(self.storage[offset..offset+32].to_vec())
+        }
+    }
+
+    pub fn load_range(&mut self, offset: usize, length: usize) -> Result<Vec<u8>, StatusCode> {
+        if offset + length - 1 >= self.storage.len() {
+            Err(StatusCode::InvalidMemoryAccess)
+        } else {
+            Ok(self.storage[offset..offset+length].to_vec())
+        }
+    }
+
     pub fn store(&mut self, offset: usize, value: U256) -> Result<(), StatusCode> {
         if offset >= self.storage.len() {
-            self.storage.resize(offset + 1, U256::zero());
+            self.storage.resize(offset+32, 0);
         };
-        self.storage[offset] = value;
+        value.to_big_endian(&mut self.storage[offset..offset+32]);
         Ok(())
     }
 
-    pub fn load(&mut self, offset: usize) -> Result<U256, StatusCode> {
-        if offset >= self.storage.len() {
-            Err(StatusCode::InvalidMemoryAccess)
-        } else {
-            Ok(self.storage[offset])
-        }
-    }
 
-    pub fn load_range(&mut self, offset: usize, length: usize) -> Result<Vec<U256>, StatusCode> {
-        if offset >= self.storage.len() {
-            Err(StatusCode::InvalidMemoryAccess)
-        } else {
-            Ok(self.storage[offset..offset + length].to_vec())
-        }
-    }
-
-    pub fn load_full(&mut self) -> &Vec<U256> {
+    pub fn load_full(&mut self) -> &Vec<u8> {
         &self.storage
     }
 }

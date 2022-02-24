@@ -80,6 +80,7 @@ pub const RETURN: u8 = 0xF3;
 pub const STOP: u8 = 0x00;
 pub const PC: u8 = 0x58;
 pub const GAS: u8 = 0x5A;
+pub const SHA3: u8 = 0x20;
 
 // Gas fetcher
 pub fn gas_fetch(key: u8) -> usize {

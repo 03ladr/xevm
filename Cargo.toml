@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 ethers = "0.6.2"
 hex = "0.4.3"
+sha3 = "0.10.1"
+byte-slice-cast = "1.2.0"
