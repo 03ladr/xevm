@@ -12,6 +12,7 @@ pub struct ExecutionContext {
     pc: usize,
     gas_limit: usize,
     stopped: bool,
+    calldata: Vec<u8>,
     returndata: Vec<u8>
 }
 impl ExecutionContext {
@@ -23,8 +24,15 @@ impl ExecutionContext {
             pc: 0,
             gas_limit: gas_limit,
             stopped: false,
+            calldata: Vec::with_capacity(1024),
             returndata: Vec::with_capacity(1024)
         }
+    }
+
+    pub fn calldata_load(&mut self, offset: usize) -> Result<Vec<u8>, StatusCode> {
+        let mut memory_vec = self.calldata.clone();
+        if memory_vec.len() <= offset+31 { memory_vec.resize(offset + 32, 0); };
+        Ok(memory_vec[offset..offset+32].to_vec())
     }
 
     pub fn sub_gas(&mut self, by: usize) -> Result<(), StatusCode> {
@@ -66,7 +74,7 @@ impl ExecutionContext {
                 Ok(_) => ()
             };
             self.sub_gas(gas_fetch(opcode))?;
-            println!("Stack: {:?}\nMemory: {:?}\nGas: {}", self.stack.peek_full(), self.memory.load_full(), self.gas_limit);
+            println!("Stack: {:?}\nMemory Length: {}\nMemory: {:?}\nGas: {}", self.stack.peek_full(), self.memory.len(), self.memory.load_full(), self.gas_limit);
         }
         Ok(())
     }
@@ -282,6 +290,18 @@ impl ExecutionContext {
                 self.pc_increment(1);
                 Ok(())
             },
+            CALLDATALOAD => {
+                let offset = self.stack.pop()?.as_usize();
+                let loaded = self.calldata_load(offset)?;
+                self.stack.push(U256::from_big_endian(loaded.as_slice()))?;
+                self.pc_increment(1);
+                Ok(())
+            },
+            CALLDATASIZE => {
+                self.stack.push(U256::from(self.calldata.len()))?;
+                self.pc_increment(1);
+                Ok(())
+            },
             JUMP => {
                 let dest = self.stack.pop()?;
                 self.pc_jump(dest.as_usize())
@@ -291,6 +311,17 @@ impl ExecutionContext {
                 let cond = self.stack.pop()?;
                 if cond.is_zero() { self.pc_increment(1); Ok(()) }
                 else { self.pc_jump(dest.as_usize()) }
+            },
+            SHA3 => {
+                let offset = self.stack.pop()?.as_usize();
+                let length = self.stack.pop()?.as_usize();
+                let value = self.memory.load_range(offset, length)?;
+                let mut hasher = Keccak256::default();
+                hasher.update(value.as_slice());
+                let ret = U256::from(hasher.finalize().to_vec().as_slice());
+                self.stack.push(ret)?;
+                self.pc_increment(1);
+                Ok(())
             },
             RETURN => {
                 let offset = self.stack.pop()?.as_usize();
@@ -303,17 +334,6 @@ impl ExecutionContext {
             STOP => {
                 self.stop();
                 Err(StatusCode::Completion)
-            },
-            SHA3 => {
-                let offset = self.stack.pop()?.as_usize();
-                let length = self.stack.pop()?.as_usize();
-                let value = self.memory.load_range(offset, length)?;
-                let mut hasher = Keccak256::default();
-                hasher.update(value.as_slice());
-                let ret = U256::from(hasher.finalize().to_vec().as_slice());
-                self.stack.push(ret)?;
-                self.pc_increment(1);
-                Ok(())
             },
             _ => Err(StatusCode::UndefinedInstruction)
         }

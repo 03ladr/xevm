@@ -75,6 +75,10 @@ pub const MSTORE8: u8 = 0x53;
 // Execution Context
 pub const JUMP: u8 = 0x56;
 pub const JUMPI: u8 = 0x57;
+// Calldata
+pub const CALLDATALOAD: u8 = 0x35;
+pub const CALLDATASIZE: u8 = 0x36;
+pub const CALLDATACOPY: u8 = 0x37;
 // Other
 pub const RETURN: u8 = 0xF3;
 pub const STOP: u8 = 0x00;

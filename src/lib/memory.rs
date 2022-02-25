@@ -9,9 +9,8 @@ impl Memory {
         Memory { storage: Vec::with_capacity(4096) }
     }
 
-
     pub fn load(&mut self, offset: usize) -> Result<Vec<u8>, StatusCode> {
-        if offset + 32 - 1 >= self.storage.len() {
+        if offset + 31 >= self.storage.len() {
             Err(StatusCode::InvalidMemoryAccess)
         } else {
             Ok(self.storage[offset..offset+32].to_vec())
@@ -31,11 +30,17 @@ impl Memory {
             self.storage.resize(offset+32, 0);
         };
         value.to_big_endian(&mut self.storage[offset..offset+32]);
+        self.storage.resize((self.storage.len()|31)+1, 0);
+        println!("\noffset: {}\nlen: {}\n", offset, self.storage.len());
         Ok(())
     }
 
 
     pub fn load_full(&mut self) -> &Vec<u8> {
         &self.storage
+    }
+
+    pub fn len(&mut self) -> usize {
+        self.storage.len()
     }
 }
