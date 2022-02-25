@@ -11,7 +11,7 @@ impl Memory {
 
 
     pub fn load(&mut self, offset: usize) -> Result<Vec<u8>, StatusCode> {
-        if offset + 32 >= self.storage.len() {
+        if offset + 32 - 1 >= self.storage.len() {
             Err(StatusCode::InvalidMemoryAccess)
         } else {
             Ok(self.storage[offset..offset+32].to_vec())

@@ -4,7 +4,6 @@ use super::statuscode::StatusCode;
 use super::opcode::*;
 use super::memory::Memory;
 use super::stack::Stack;
-use byte_slice_cast::AsByteSlice;
 
 pub struct ExecutionContext {
     code: Vec<u8>,
