@@ -30,8 +30,7 @@ impl Memory {
             self.storage.resize(offset+32, 0);
         };
         value.to_big_endian(&mut self.storage[offset..offset+32]);
-        self.storage.resize((self.storage.len()|31)+1, 0);
-        println!("\noffset: {}\nlen: {}\n", offset, self.storage.len());
+        if self.storage.len() % 32 != 0 { self.storage.resize((self.storage.len()|31)+1, 0);};
         Ok(())
     }
 

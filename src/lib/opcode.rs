@@ -162,6 +162,5 @@ pub fn gas_fetch(key: u8) -> usize {
         | MULMOD => 8,
         JUMPI => 10,
         _ => 0
-
     }
 }
