@@ -2,7 +2,7 @@ use super::statuscode::StatusCode;
 use ethers::types::U256;
 
 pub struct Memory {
-    storage: Vec<u8>
+    pub storage: Vec<u8>
 }
 impl Memory {
     pub fn init() -> Self {
@@ -18,10 +18,10 @@ impl Memory {
     }
 
     pub fn load_range(&mut self, offset: usize, length: usize) -> Result<Vec<u8>, StatusCode> {
-        if offset + length - 1 >= self.storage.len() {
+        if offset + length >= self.storage.len() {
             Err(StatusCode::InvalidMemoryAccess)
         } else {
-            Ok(self.storage[offset..offset+length].to_vec())
+            Ok(self.storage[offset..=offset+length].to_vec())
         }
     }
 
