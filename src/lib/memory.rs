@@ -10,19 +10,25 @@ impl Memory {
     }
 
     pub fn load(&mut self, offset: usize) -> Result<Vec<u8>, StatusCode> {
-        if offset + 31 >= self.storage.len() {
-            Err(StatusCode::InvalidMemoryAccess)
-        } else {
-            Ok(self.storage[offset..offset+32].to_vec())
-        }
+        let len_original = self.storage.len();
+        if offset + 31 >= len_original {
+            self.storage.resize((offset+len_original|31)+1, 0);
+            // Err(StatusCode::InvalidMemoryAccess)
+        };
+        let ret = self.storage[offset..offset+32].to_vec();
+        self.storage.truncate(len_original);
+        Ok(ret)
     }
 
     pub fn load_range(&mut self, offset: usize, length: usize) -> Result<Vec<u8>, StatusCode> {
-        if offset + length >= self.storage.len() {
-            Err(StatusCode::InvalidMemoryAccess)
-        } else {
-            Ok(self.storage[offset..=offset+length].to_vec())
-        }
+        let len_original = self.storage.len();
+        if offset + length >= len_original {
+            self.storage.resize((offset+length+len_original|31)+1, 0);
+            // Err(StatusCode::InvalidMemoryAccess)
+        };
+        let ret = self.storage[offset..offset+length].to_vec();
+        self.storage.truncate(len_original);
+        Ok(ret)
     }
 
     pub fn store(&mut self, offset: usize, value: U256) -> Result<(), StatusCode> {
