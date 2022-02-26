@@ -285,8 +285,8 @@ impl ExecutionContext {
             },
             MSTORE8 => {
                 let offset = self.stack.pop()?.as_usize();
-                let value = self.stack.pop()?.as_usize();
-                self.memory.store(offset, U256::from(value & 0xFF))?;
+                let value = self.stack.pop()?;
+                self.memory.store(offset, value & U256::from(0xFF))?;
                 self.pc_increment(1);
                 Ok(())
             },
