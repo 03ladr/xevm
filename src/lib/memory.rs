@@ -40,7 +40,6 @@ impl Memory {
         Ok(())
     }
 
-
     pub fn load_full(&mut self) -> &Vec<u8> {
         &self.storage
     }

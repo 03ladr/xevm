@@ -30,9 +30,11 @@ impl ExecutionContext {
     }
 
     pub fn calldata_load(&mut self, offset: usize) -> Result<Vec<u8>, StatusCode> {
-        let mut memory_vec = self.calldata.clone();
-        if memory_vec.len() <= offset+31 { memory_vec.resize(offset + 32, 0); };
-        Ok(memory_vec[offset..offset+32].to_vec())
+        let len_original = self.calldata.len();
+        if len_original <= offset+31 { self.calldata.resize(offset + 32, 0); };
+        let ret = self.calldata[offset..offset+32].to_vec();
+        self.calldata.truncate(len_original);
+        Ok(ret)
     }
 
     pub fn sub_gas(&mut self, by: usize) -> Result<(), StatusCode> {
