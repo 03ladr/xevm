@@ -93,12 +93,11 @@ impl ExecutionContext {
                 }
             }
         }
-
         macro_rules! dupn {
             ( $n:expr ) => {
                 {
-                    let val = self.stack.peek(self.stack.len() - $n)?;
-                    self.stack.push(val)?;
+                    let ret = self.stack.peek(self.stack.len() - $n)?;
+                    self.stack.push(ret)?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -165,6 +164,20 @@ impl ExecutionContext {
                 }
             }
         }
+        macro_rules! signed_bool_term_eval {
+            ( $op:tt ) => {
+                {
+                    let val1 = I256::try_from(self.stack.pop()?).unwrap();
+                    let val2 = I256::try_from(self.stack.pop()?).unwrap();
+                    let mut ret = U256::zero();
+                    let evaluation = val1 $op val2;
+                    if evaluation { ret = U256::from(1u8) };
+                    self.stack.push(ret)?;
+                    self.pc_increment(1);
+                    Ok(())
+                }
+            }
+        }
         macro_rules! bool_term_eval {
             ( $op:tt ) => {
                 {
@@ -192,7 +205,6 @@ impl ExecutionContext {
                 }
             }
         }
-
         match opcode {
             PUSH1 => pushn!(1),
             PUSH2 => pushn!(2),
@@ -266,9 +278,12 @@ impl ExecutionContext {
             XOR => term_eval!(^),
             NOT => { let val = self.stack.pop()?; self.stack.push(!val)?; self.pc_increment(1); Ok(()) },
             GT => bool_term_eval!(<),
+            SGT => signed_bool_term_eval!(<),
             LT => bool_term_eval!(>),
+            SLT => signed_bool_term_eval!(>),
             SHL => term_eval!(<<),
             SHR => term_eval!(>>),
+            SAR => signed_term_eval!(>>),
             PC => { self.stack.push(U256::from(self.pc))?; self.pc_increment(1); Ok(()) },
             GAS => { self.stack.push(U256::from(self.gas_limit))?; self.pc_increment(1); Ok(()) }
             MLOAD => {

@@ -66,8 +66,11 @@ pub const XOR: u8 = 0x18;
 pub const NOT: u8 = 0x19;
 pub const GT: u8 = 0x11;
 pub const LT: u8 = 0x10;
-pub const SHL: u8 = 0x1A;
-pub const SHR: u8 = 0x1B;
+pub const SLT: u8 = 0x12;
+pub const SGT: u8 = 0x13;
+pub const SHL: u8 = 0x1B;
+pub const SHR: u8 = 0x1C;
+pub const SAR: u8 = 0x1D;
 // Memory
 pub const MLOAD: u8 = 0x51;
 pub const MSTORE: u8 = 0x52;
