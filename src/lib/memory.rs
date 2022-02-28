@@ -1,5 +1,5 @@
 use super::statuscode::StatusCode;
-use ethers::types::U256;
+use super::custom_type::U256BE;
 
 pub struct Memory {
     pub storage: Vec<u8>
@@ -31,11 +31,11 @@ impl Memory {
         Ok(ret)
     }
 
-    pub fn store(&mut self, offset: usize, value: U256) -> Result<(), StatusCode> {
+    pub fn store(&mut self, offset: usize, value: U256BE) -> Result<(), StatusCode> {
         if offset >= self.storage.len() {
             self.storage.resize(offset+32, 0);
         };
-        value.to_big_endian(&mut self.storage[offset..offset+32]);
+        self.storage[offset..offset+32].clone_from_slice(&value.as_slice());
         if self.storage.len() % 32 != 0 { self.storage.resize((self.storage.len()|31)+1, 0);};
         Ok(())
     }
