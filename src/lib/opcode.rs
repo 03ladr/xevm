@@ -93,13 +93,13 @@ pub const SHA3: u8 = 0x20;
 // Gas fetcher
 pub fn gas_fetch(key: u8) -> usize {
     match key {
-        POP | PC | GAS => 2,
+        POP | PC | GAS | CALLDATASIZE | MSIZE => 2,
         PUSH1 | PUSH2 | PUSH3 | PUSH4 | PUSH5 | PUSH6 | PUSH7 | PUSH8 | PUSH9 | PUSH10 | PUSH11
         | PUSH12 | PUSH13 | PUSH14 | PUSH15 | PUSH16 | DUP1 | DUP2 | DUP3 | DUP4 | DUP5 | DUP6
         | DUP7 | DUP8 | DUP9 | DUP10 | DUP11 | DUP12 | DUP13 | DUP14 | DUP15 | DUP16 | SWAP1
         | SWAP2 | SWAP3 | SWAP4 | SWAP5 | SWAP6 | SWAP7 | SWAP8 | SWAP9 | SWAP10 | SWAP11 | XOR
         | SWAP12 | SWAP13 | SWAP14 | SWAP15 | SWAP16 | ADD | SUB | EQ | ISZERO | AND | OR
-        | NOT | GT | LT | SHL | SHR => 3,
+        | NOT | GT | LT | SGT | SLT | SHL | SHR | SAR | CALLDATALOAD => 3,
         MUL | DIV | SDIV | MOD | SMOD => 5,
         JUMP | ADDMOD | MULMOD => 8,
         JUMPI => 10,
