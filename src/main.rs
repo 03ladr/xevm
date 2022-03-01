@@ -6,7 +6,7 @@ use lib::stack::Stack;
 use lib::statuscode::StatusCode;
 use std::env;
 
-// cargo run {gas_limit} {code}
+// cargo run {gas_limit} {bytecode}
 fn main() -> Result<(), StatusCode> {
     let args: Vec<String> = env::args().collect();
     let stack = Stack::init();
