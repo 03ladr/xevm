@@ -1,4 +1,2 @@
 # revm
-
-### why
-it'd be cool for revm to become the lightest and fastest evm implementation.
+revm is a WIP Ethereum Virtual Machine implementation prioritizing speed and simplicity.
