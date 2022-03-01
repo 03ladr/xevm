@@ -1,10 +1,10 @@
-use ethers::types::{U256, I256};
-use sha3::{Digest, Keccak256};
 use super::custom_type::U256BE;
-use super::statuscode::StatusCode;
-use super::opcode::*;
 use super::memory::Memory;
+use super::opcode::*;
 use super::stack::Stack;
+use super::statuscode::StatusCode;
+use ethers::types::{I256, U256};
+use sha3::{Digest, Keccak256};
 
 pub struct ExecutionContext {
     code: Vec<u8>,
@@ -14,7 +14,7 @@ pub struct ExecutionContext {
     gas_limit: usize,
     stopped: bool,
     calldata: Vec<u8>,
-    returndata: Vec<u8>
+    returndata: Vec<u8>,
 }
 impl ExecutionContext {
     pub fn init(code: Vec<u8>, stack: Stack, memory: Memory, gas_limit: usize) -> Self {
@@ -26,20 +26,22 @@ impl ExecutionContext {
             gas_limit: gas_limit,
             stopped: false,
             calldata: Vec::with_capacity(1024),
-            returndata: Vec::with_capacity(1024)
+            returndata: Vec::with_capacity(1024),
         }
     }
 
     pub fn calldata_load(&mut self, offset: usize) -> Result<Vec<u8>, StatusCode> {
         let len_original = self.calldata.len();
-        if len_original <= offset+31 { self.calldata.resize(offset + 32, 0); };
-        let ret = self.calldata[offset..offset+32].to_vec();
+        if len_original <= offset + 31 { self.calldata.resize(offset + 32, 0); };
+        let ret = self.calldata[offset..offset + 32].to_vec();
         self.calldata.truncate(len_original);
         Ok(ret)
     }
 
     pub fn sub_gas(&mut self, by: usize) -> Result<(), StatusCode> {
-        if by > self.gas_limit { return Err(StatusCode::OutOfGas); };
+        if by > self.gas_limit {
+            return Err(StatusCode::OutOfGas);
+        };
         self.gas_limit -= by;
         Ok(())
     }
@@ -49,9 +51,7 @@ impl ExecutionContext {
     }
 
     pub fn pc_jump(&mut self, dest: usize) -> Result<(), StatusCode> {
-        if dest >= self.code.len() {
-            return Err(StatusCode::BadJumpDest);
-        };
+        if dest >= self.code.len() { return Err(StatusCode::BadJumpDest); };
         self.pc = dest;
         Ok(())
     }
@@ -61,9 +61,7 @@ impl ExecutionContext {
     }
 
     pub fn read_code(&mut self, idx: usize) -> Result<u8, StatusCode> {
-        if self.pc + idx >= self.code.len() {
-            return Err(StatusCode::Completion);
-        };
+        if self.pc + idx >= self.code.len() { return Err(StatusCode::Completion); };
         let value = self.code[self.pc + idx];
         Ok(value)
     }
@@ -71,87 +69,82 @@ impl ExecutionContext {
     pub fn run(&mut self) -> Result<(), StatusCode> {
         while !self.stopped {
             let opcode: u8 = self.read_code(0)?;
-            println!("[ Opcode: {} | PC: {} | Gas: {} ]", opcode, self.pc, self.gas_limit);
+            println!(
+                "[ Opcode: {} | PC: {} | Gas: {} ]",
+                opcode, self.pc, self.gas_limit
+            );
             match self.exec(opcode) {
                 Err(e) => return Err(e),
-                Ok(_) => ()
+                Ok(_) => (),
             };
             self.sub_gas(gas_fetch(opcode))?;
-            println!("Stack: {:?}\nMemory: {:?}", self.stack.peek_full(), self.memory.load_full());
+            println!(
+                "Stack: {:?}\nMemory: {:?}",
+                self.stack.peek_full(),
+                self.memory.load_full()
+            );
         }
         Ok(())
     }
 
     pub fn exec(&mut self, opcode: u8) -> Result<(), StatusCode> {
         macro_rules! pushn {
-            ( $n:expr ) => {
-                {
-                    let slice = &self.code[self.pc + 1..=self.pc + $n];
-                    let ret = U256BE::from_slice(slice);
-                    self.stack.push(ret)?;
-                    self.pc_increment($n + 1);
-                    Ok(())
-                }
-            }
+            ( $n:expr ) => {{
+                let slice = &self.code[self.pc + 1..=self.pc + $n];
+                let ret = U256BE::from_slice(slice);
+                self.stack.push(ret)?;
+                self.pc_increment($n + 1);
+                Ok(())
+            }};
         }
         macro_rules! dupn {
-            ( $n:expr ) => {
-                {
-                    let ret = self.stack.peek(self.stack.len() - $n)?;
-                    self.stack.push(ret)?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $n:expr ) => {{
+                let ret = self.stack.peek(self.stack.len() - $n)?;
+                self.stack.push(ret)?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         macro_rules! swapn {
-            ( $n:expr ) => {
-                {
-                    let top = self.stack.peek(0)?;
-                    let swp = self.stack.peek($n)?;
-                    self.stack.push_to(0, swp)?;
-                    self.stack.push_to($n, top)?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $n:expr ) => {{
+                let top = self.stack.peek(0)?;
+                let swp = self.stack.peek($n)?;
+                self.stack.push_to(0, swp)?;
+                self.stack.push_to($n, top)?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         macro_rules! arith_eval {
-            ( $op:tt ) => {
-                {
-                    let val1 = self.stack.pop()?.to_u256();
-                    let val2 = self.stack.pop()?.to_u256();
-                    let ret = val1.$op(val2);
-                    if ret.1 { self.stop(); return Err(StatusCode::Revert); };
-                    self.stack.push(U256BE::from_u256(ret.0))?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $op:tt ) => {{
+                let val1 = self.stack.pop()?.to_u256();
+                let val2 = self.stack.pop()?.to_u256();
+                let ret = val1.$op(val2);
+                if ret.1 { self.stop(); return Err(StatusCode::Revert); };
+                self.stack.push(U256BE::from_u256(ret.0))?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         macro_rules! checked_arith_eval {
-            ( $op:tt ) => {
-                {
-                    let val1 = self.stack.pop()?.to_u256();
-                    let val2 = self.stack.pop()?.to_u256();
-                    let ret = val1.$op(val2).unwrap();
-                    self.stack.push(U256BE::from_u256(ret))?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $op:tt ) => {{
+                let val1 = self.stack.pop()?.to_u256();
+                let val2 = self.stack.pop()?.to_u256();
+                let ret = val1.$op(val2).unwrap();
+                self.stack.push(U256BE::from_u256(ret))?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         macro_rules! term_eval {
-            ( $op:tt ) => {
-                {
-                    let val1 = self.stack.pop()?.to_u256();
-                    let val2 = self.stack.pop()?.to_u256();
-                    let ret = val1 $op val2;
-                    self.stack.push(U256BE::from_u256(ret))?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $op:tt ) => {{
+                let val1 = self.stack.pop()?.to_u256();
+                let val2 = self.stack.pop()?.to_u256();
+                let ret = val1 $op val2;
+                self.stack.push(U256BE::from_u256(ret))?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         macro_rules! signed_term_eval {
             ( $op: tt ) => {
@@ -184,10 +177,10 @@ impl ExecutionContext {
                 {
                     let val1 = self.stack.pop()?.to_u256();
                     let val2 = self.stack.pop()?.to_u256();
-                    let mut ret = U256::zero();
+                    let mut ret = U256BE::zero();
                     let evaluation = val1 $op val2;
-                    if evaluation { ret = U256::from(1u8) };
-                    self.stack.push(U256BE::from_u256(ret))?;
+                    if evaluation { ret = U256BE::from_u8(1) };
+                    self.stack.push(ret)?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -223,7 +216,7 @@ impl ExecutionContext {
             PUSH14 => pushn!(14),
             PUSH15 => pushn!(15),
             PUSH16 => pushn!(16),
-            POP => { self.stack.pop()?; self.pc_increment(1); Ok(()) },
+            POP => { self.stack.pop()?; self.pc_increment(1); Ok(()) }
             DUP1 => dupn!(1),
             DUP2 => dupn!(2),
             DUP3 => dupn!(3),
@@ -267,17 +260,6 @@ impl ExecutionContext {
             ADDMOD => polynomial_term_eval!(+, %),
             MULMOD => polynomial_term_eval!(*, %),
             EQ => bool_term_eval!(==),
-            ISZERO => {
-                let val = self.stack.pop()?;
-                if val == U256BE::zero() { self.stack.push(U256BE::from_u8(1))?; }
-                else { self.stack.push(U256BE::zero())?; };
-                self.pc_increment(1);
-                Ok(())
-            },
-            AND => term_eval!(&),
-            OR => term_eval!(|),
-            XOR => term_eval!(^),
-            NOT => { let val = self.stack.pop()?; self.stack.push(val.not())?; self.pc_increment(1); Ok(()) },
             GT => bool_term_eval!(<),
             SGT => signed_bool_term_eval!(<),
             LT => bool_term_eval!(>),
@@ -285,51 +267,90 @@ impl ExecutionContext {
             SHL => term_eval!(<<),
             SHR => term_eval!(>>),
             SAR => signed_term_eval!(>>),
-            PC => { self.stack.push(U256BE::from_usize(self.pc))?; self.pc_increment(1); Ok(()) },
-            GAS => { self.stack.push(U256BE::from_usize(self.gas_limit))?; self.pc_increment(1); Ok(()) }
+            ISZERO => {
+                let val = self.stack.pop()?;
+                if val == U256BE::zero() { self.stack.push(U256BE::from_u8(1))?; }
+                else { self.stack.push(U256BE::zero())?; };
+                self.pc_increment(1);
+                Ok(())
+            }
+            AND => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack.push(val1.and(val2))?;
+                self.pc_increment(1);
+                Ok(())
+            },
+            OR => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack.push(val1.or(val2))?;
+                self.pc_increment(1);
+                Ok(())
+            },
+            XOR => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack.push(val1.xor(val2))?;
+                self.pc_increment(1);
+                Ok(())
+            },
+            NOT => {
+                let val = self.stack.pop()?;
+                self.stack.push(val.not())?;
+                self.pc_increment(1);
+                Ok(())
+            }
+            PC => {
+                self.stack.push(U256BE::from_usize(self.pc))?;
+                self.pc_increment(1);
+                Ok(())
+            }
+            GAS => {
+                self.stack.push(U256BE::from_usize(self.gas_limit))?;
+                self.pc_increment(1);
+                Ok(())
+            }
             MLOAD => {
                 let offset = self.stack.pop()?.as_usize();
                 let loaded = self.memory.load(offset)?;
                 self.stack.push(U256BE::from_slice(loaded.as_slice()))?;
                 self.pc_increment(1);
                 Ok(())
-            },
+            }
             MSTORE => {
                 let offset = self.stack.pop()?.as_usize();
                 let value = self.stack.pop()?;
                 self.memory.store(offset, value)?;
                 self.pc_increment(1);
                 Ok(())
-            },
+            }
             MSTORE8 => {
                 let offset = self.stack.pop()?.as_usize();
                 let value = self.stack.pop()?.to_u256();
                 self.memory.store(offset, U256BE::from_u256(value & U256::from(0xFFu8)))?;
                 self.pc_increment(1);
                 Ok(())
-            },
+            }
             CALLDATALOAD => {
                 let offset = self.stack.pop()?.as_usize();
                 let loaded = self.calldata_load(offset)?;
                 self.stack.push(U256BE::from_slice(loaded.as_slice()))?;
                 self.pc_increment(1);
                 Ok(())
-            },
+            }
             CALLDATASIZE => {
                 self.stack.push(U256BE::from_usize(self.calldata.len()))?;
                 self.pc_increment(1);
                 Ok(())
-            },
-            JUMP => {
-                let dest = self.stack.pop()?;
-                self.pc_jump(dest.as_usize())
-            },
+            }
+            JUMP => { let dest = self.stack.pop()?; self.pc_jump(dest.as_usize()) }
             JUMPI => {
                 let dest = self.stack.pop()?;
                 let cond = self.stack.pop()?.to_u256();
                 if cond.is_zero() { self.pc_increment(1); Ok(()) }
                 else { self.pc_jump(dest.as_usize()) }
-            },
+            }
             SHA3 => {
                 let offset = self.stack.pop()?.as_usize();
                 let length = self.stack.pop()?.as_usize();
@@ -340,7 +361,7 @@ impl ExecutionContext {
                 self.stack.push(ret)?;
                 self.pc_increment(1);
                 Ok(())
-            },
+            }
             RETURN => {
                 let offset = self.stack.pop()?.as_usize();
                 let length = self.stack.pop()?.as_usize();
@@ -348,12 +369,12 @@ impl ExecutionContext {
                 self.stop();
                 println!("Return Data: {:?}", self.returndata);
                 Err(StatusCode::Completion)
-            },
+            }
             STOP => {
                 self.stop();
                 Err(StatusCode::Completion)
-            },
-            _ => Err(StatusCode::UndefinedInstruction)
+            }
+            _ => Err(StatusCode::UndefinedInstruction),
         }
     }
 }

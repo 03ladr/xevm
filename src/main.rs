@@ -1,11 +1,10 @@
 pub mod lib;
 use hex;
-use lib::memory::Memory;
-use lib::statuscode::StatusCode;
-use lib::stack::Stack;
 use lib::execution::ExecutionContext;
+use lib::memory::Memory;
+use lib::stack::Stack;
+use lib::statuscode::StatusCode;
 use std::env;
-
 
 // cargo run {gas_limit} {code}
 fn main() -> Result<(), StatusCode> {
@@ -16,7 +15,7 @@ fn main() -> Result<(), StatusCode> {
         hex::decode(&args[2]).unwrap(),
         stack,
         memory,
-        str::parse::<usize>(&args[1]).unwrap()
+        str::parse::<usize>(&args[1]).unwrap(),
     );
     executor.run()
 }

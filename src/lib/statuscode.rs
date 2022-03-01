@@ -20,5 +20,5 @@ pub enum StatusCode {
     InsufficientBalance,
     InternalError,
     Rejected,
-    OutOfMemory
+    OutOfMemory,
 }
