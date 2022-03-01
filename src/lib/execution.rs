@@ -1,5 +1,6 @@
 use ethers::types::{U256, I256};
 use sha3::{Digest, Keccak256};
+use super::custom_type::U256BE;
 use super::statuscode::StatusCode;
 use super::opcode::*;
 use super::memory::Memory;
@@ -70,13 +71,13 @@ impl ExecutionContext {
     pub fn run(&mut self) -> Result<(), StatusCode> {
         while !self.stopped {
             let opcode: u8 = self.read_code(0)?;
-            println!("Opcode: {} @ PC: {}", opcode, self.pc);
+            println!("[ Opcode: {} | PC: {} | Gas: {} ]", opcode, self.pc, self.gas_limit);
             match self.exec(opcode) {
                 Err(e) => return Err(e),
                 Ok(_) => ()
             };
             self.sub_gas(gas_fetch(opcode))?;
-            println!("Stack: {:?}\nMemory Length: {}\nMemory: {:?}\nGas: {}", self.stack.peek_full(), self.memory.len(), self.memory.load_full(), self.gas_limit);
+            println!("Stack: {:?}\nMemory: {:?}", self.stack.peek_full(), self.memory.load_full());
         }
         Ok(())
     }
@@ -86,7 +87,7 @@ impl ExecutionContext {
             ( $n:expr ) => {
                 {
                     let slice = &self.code[self.pc + 1..=self.pc + $n];
-                    let ret = U256::from_big_endian(&slice);
+                    let ret = U256BE::from_slice(slice);
                     self.stack.push(ret)?;
                     self.pc_increment($n + 1);
                     Ok(())
@@ -118,11 +119,11 @@ impl ExecutionContext {
         macro_rules! arith_eval {
             ( $op:tt ) => {
                 {
-                    let val1: U256 = self.stack.pop()?;
-                    let val2: U256 = self.stack.pop()?;
+                    let val1 = self.stack.pop()?.to_u256();
+                    let val2 = self.stack.pop()?.to_u256();
                     let ret = val1.$op(val2);
                     if ret.1 { self.stop(); return Err(StatusCode::Revert); };
-                    self.stack.push(ret.0)?;
+                    self.stack.push(U256BE::from_u256(ret.0))?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -131,10 +132,10 @@ impl ExecutionContext {
         macro_rules! checked_arith_eval {
             ( $op:tt ) => {
                 {
-                    let val1 = self.stack.pop()?;
-                    let val2 = self.stack.pop()?;
+                    let val1 = self.stack.pop()?.to_u256();
+                    let val2 = self.stack.pop()?.to_u256();
                     let ret = val1.$op(val2).unwrap();
-                    self.stack.push(ret)?;
+                    self.stack.push(U256BE::from_u256(ret))?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -143,10 +144,10 @@ impl ExecutionContext {
         macro_rules! term_eval {
             ( $op:tt ) => {
                 {
-                    let val1 = self.stack.pop()?;
-                    let val2 = self.stack.pop()?;
+                    let val1 = self.stack.pop()?.to_u256();
+                    let val2 = self.stack.pop()?.to_u256();
                     let ret = val1 $op val2;
-                    self.stack.push(ret)?;
+                    self.stack.push(U256BE::from_u256(ret))?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -155,10 +156,10 @@ impl ExecutionContext {
         macro_rules! signed_term_eval {
             ( $op: tt ) => {
                 {
-                    let val1 = I256::try_from(self.stack.pop()?).unwrap();
-                    let val2 = I256::try_from(self.stack.pop()?).unwrap();
+                    let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
+                    let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
                     let ret = val1 $op val2;
-                    self.stack.push(U256::try_from(ret).unwrap())?;
+                    self.stack.push(U256BE::from_u256(U256::try_from(ret).unwrap()))?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -167,11 +168,11 @@ impl ExecutionContext {
         macro_rules! signed_bool_term_eval {
             ( $op:tt ) => {
                 {
-                    let val1 = I256::try_from(self.stack.pop()?).unwrap();
-                    let val2 = I256::try_from(self.stack.pop()?).unwrap();
-                    let mut ret = U256::zero();
+                    let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
+                    let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
+                    let mut ret = U256BE::zero();
                     let evaluation = val1 $op val2;
-                    if evaluation { ret = U256::from(1u8) };
+                    if evaluation { ret = U256BE::from_u8(1) };
                     self.stack.push(ret)?;
                     self.pc_increment(1);
                     Ok(())
@@ -181,12 +182,12 @@ impl ExecutionContext {
         macro_rules! bool_term_eval {
             ( $op:tt ) => {
                 {
-                    let val1 = self.stack.pop()?;
-                    let val2 = self.stack.pop()?;
+                    let val1 = self.stack.pop()?.to_u256();
+                    let val2 = self.stack.pop()?.to_u256();
                     let mut ret = U256::zero();
                     let evaluation = val1 $op val2;
                     if evaluation { ret = U256::from(1u8) };
-                    self.stack.push(ret)?;
+                    self.stack.push(U256BE::from_u256(ret))?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -195,11 +196,11 @@ impl ExecutionContext {
         macro_rules! polynomial_term_eval {
             ( $op1:tt, $op2:tt ) => {
                 {
-                    let val1 = self.stack.pop()?;
-                    let val2 = self.stack.pop()?;
-                    let val3 = self.stack.pop()?;
+                    let val1 = self.stack.pop()?.to_u256();
+                    let val2 = self.stack.pop()?.to_u256();
+                    let val3 = self.stack.pop()?.to_u256();
                     let ret = (val1 $op1 val2) $op2 val3;
-                    self.stack.push(ret)?;
+                    self.stack.push(U256BE::from_u256(ret))?;
                     self.pc_increment(1);
                     Ok(())
                 }
@@ -268,15 +269,15 @@ impl ExecutionContext {
             EQ => bool_term_eval!(==),
             ISZERO => {
                 let val = self.stack.pop()?;
-                if val == U256::zero() { self.stack.push(U256::from(1u8))?; }
-                else { self.stack.push(U256::zero())?; };
+                if val == U256BE::zero() { self.stack.push(U256BE::from_u8(1))?; }
+                else { self.stack.push(U256BE::zero())?; };
                 self.pc_increment(1);
                 Ok(())
             },
             AND => term_eval!(&),
             OR => term_eval!(|),
             XOR => term_eval!(^),
-            NOT => { let val = self.stack.pop()?; self.stack.push(!val)?; self.pc_increment(1); Ok(()) },
+            NOT => { let val = self.stack.pop()?; self.stack.push(val.not())?; self.pc_increment(1); Ok(()) },
             GT => bool_term_eval!(<),
             SGT => signed_bool_term_eval!(<),
             LT => bool_term_eval!(>),
@@ -284,12 +285,12 @@ impl ExecutionContext {
             SHL => term_eval!(<<),
             SHR => term_eval!(>>),
             SAR => signed_term_eval!(>>),
-            PC => { self.stack.push(U256::from(self.pc))?; self.pc_increment(1); Ok(()) },
-            GAS => { self.stack.push(U256::from(self.gas_limit))?; self.pc_increment(1); Ok(()) }
+            PC => { self.stack.push(U256BE::from_usize(self.pc))?; self.pc_increment(1); Ok(()) },
+            GAS => { self.stack.push(U256BE::from_usize(self.gas_limit))?; self.pc_increment(1); Ok(()) }
             MLOAD => {
                 let offset = self.stack.pop()?.as_usize();
                 let loaded = self.memory.load(offset)?;
-                self.stack.push(U256::from_big_endian(loaded.as_slice()))?;
+                self.stack.push(U256BE::from_slice(loaded.as_slice()))?;
                 self.pc_increment(1);
                 Ok(())
             },
@@ -302,20 +303,20 @@ impl ExecutionContext {
             },
             MSTORE8 => {
                 let offset = self.stack.pop()?.as_usize();
-                let value = self.stack.pop()?;
-                self.memory.store(offset, value & U256::from(0xFF))?;
+                let value = self.stack.pop()?.to_u256();
+                self.memory.store(offset, U256BE::from_u256(value & U256::from(0xFFu8)))?;
                 self.pc_increment(1);
                 Ok(())
             },
             CALLDATALOAD => {
                 let offset = self.stack.pop()?.as_usize();
                 let loaded = self.calldata_load(offset)?;
-                self.stack.push(U256::from_big_endian(loaded.as_slice()))?;
+                self.stack.push(U256BE::from_slice(loaded.as_slice()))?;
                 self.pc_increment(1);
                 Ok(())
             },
             CALLDATASIZE => {
-                self.stack.push(U256::from(self.calldata.len()))?;
+                self.stack.push(U256BE::from_usize(self.calldata.len()))?;
                 self.pc_increment(1);
                 Ok(())
             },
@@ -325,7 +326,7 @@ impl ExecutionContext {
             },
             JUMPI => {
                 let dest = self.stack.pop()?;
-                let cond = self.stack.pop()?;
+                let cond = self.stack.pop()?.to_u256();
                 if cond.is_zero() { self.pc_increment(1); Ok(()) }
                 else { self.pc_jump(dest.as_usize()) }
             },
@@ -335,7 +336,7 @@ impl ExecutionContext {
                 let value = self.memory.load_range(offset, length)?;
                 let mut hasher = Keccak256::default();
                 hasher.update(value.as_slice());
-                let ret = U256::from(hasher.finalize().to_vec().as_slice());
+                let ret = U256BE::from_slice(hasher.finalize().to_vec().as_slice());
                 self.stack.push(ret)?;
                 self.pc_increment(1);
                 Ok(())
