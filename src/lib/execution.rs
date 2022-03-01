@@ -217,7 +217,7 @@ impl ExecutionContext {
             PUSH14 => pushn!(14),
             PUSH15 => pushn!(15),
             PUSH16 => pushn!(16),
-            POP => { self.stack.pop()?; self.pc_increment(1); Ok(()) }
+            POP => { self.stack.pop()?; self.pc_increment(1); Ok(()) },
             DUP1 => dupn!(1),
             DUP2 => dupn!(2),
             DUP3 => dupn!(3),
@@ -313,7 +313,7 @@ impl ExecutionContext {
                 self.stack.push(val.not())?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             PC => {
                 self.stack.push(U256BE::from_usize(self.pc))?;
                 self.pc_increment(1);
@@ -323,52 +323,52 @@ impl ExecutionContext {
                 self.stack.push(U256BE::from_usize(self.gas_limit))?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             MLOAD => {
                 let offset = self.stack.pop()?.as_usize();
                 let loaded = self.memory.load(offset)?;
                 self.stack.push(U256BE::from_slice(loaded.as_slice()))?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             MSTORE => {
                 let offset = self.stack.pop()?.as_usize();
                 let value = self.stack.pop()?;
                 self.memory.store(offset, value)?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             MSTORE8 => {
                 let offset = self.stack.pop()?.as_usize();
                 let value = self.stack.pop()?;
                 self.memory.store(offset, value.and(U256BE::from_u8(0xFFu8)))?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             MSIZE => {
                 self.stack.push(U256BE::from_usize(self.memory.len()))?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             CALLDATALOAD => {
                 let offset = self.stack.pop()?.as_usize();
                 let loaded = self.calldata_load(offset)?;
                 self.stack.push(U256BE::from_slice(loaded.as_slice()))?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             CALLDATASIZE => {
                 self.stack.push(U256BE::from_usize(self.calldata.len()))?;
                 self.pc_increment(1);
                 Ok(())
-            }
-            JUMP => { let dest = self.stack.pop()?; self.pc_jump(dest.as_usize()) }
+            },
+            JUMP => { let dest = self.stack.pop()?; self.pc_jump(dest.as_usize()) },
             JUMPI => {
                 let dest = self.stack.pop()?;
                 let cond = self.stack.pop()?.to_u256();
                 if cond.is_zero() { self.pc_increment(1); Ok(()) }
                 else { self.pc_jump(dest.as_usize()) }
-            }
+            },
             SHA3 => {
                 let offset = self.stack.pop()?.as_usize();
                 let length = self.stack.pop()?.as_usize();
@@ -379,7 +379,7 @@ impl ExecutionContext {
                 self.stack.push(ret)?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
             RETURN => {
                 let offset = self.stack.pop()?.as_usize();
                 let length = self.stack.pop()?.as_usize();
@@ -387,11 +387,11 @@ impl ExecutionContext {
                 self.stop();
                 println!("Return Data: {:?}", self.returndata);
                 Err(StatusCode::Completion)
-            }
+            },
             STOP => {
                 self.stop();
                 Err(StatusCode::Completion)
-            }
+            },
             _ => Err(StatusCode::UndefinedInstruction),
         }
     }
