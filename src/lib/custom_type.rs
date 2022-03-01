@@ -51,7 +51,7 @@ impl U256BE {
         U256BE(ret)
     }
 
-    // Equal operator: self == value
+    // Equivalence operator: self == value
     pub fn eq(self, value: U256BE) -> Self {
         if self.0 == value.0 { U256BE::from_u8(1) }
         else { U256BE::zero() }
