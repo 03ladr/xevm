@@ -43,7 +43,6 @@ impl U256BE {
         U256BE(ret)
     }
 
-
     pub fn from_slice(slice: &[u8]) -> Self {
         let mut ret: [u8; 32] = [0; 32];
         ret[32 - slice.len()..].clone_from_slice(slice);
