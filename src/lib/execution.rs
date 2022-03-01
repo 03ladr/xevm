@@ -271,7 +271,6 @@ impl ExecutionContext {
             SMOD => signed_term_eval!(%),
             ADDMOD => polynomial_term_eval!(+, %),
             MULMOD => polynomial_term_eval!(*, %),
-            EQ => bool_term_eval!(==),
             GT => bool_term_eval!(<),
             SGT => signed_bool_term_eval!(<),
             LT => bool_term_eval!(>),
@@ -279,13 +278,19 @@ impl ExecutionContext {
             SHL => term_eval!(<<),
             SHR => term_eval!(>>),
             SAR => signed_term_eval!(>>),
-            ISZERO => {
-                let val = self.stack.pop()?;
-                if val == U256BE::zero() { self.stack.push(U256BE::from_u8(1))?; }
-                else { self.stack.push(U256BE::zero())?; };
+            EQ => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack.push(val1.eq(val2))?;
                 self.pc_increment(1);
                 Ok(())
-            }
+            },
+            ISZERO => {
+                let val = self.stack.pop()?;
+                self.stack.push(val.eq(U256BE::zero()))?;
+                self.pc_increment(1);
+                Ok(())
+            },
             AND => {
                 let val1 = self.stack.pop()?;
                 let val2 = self.stack.pop()?;
