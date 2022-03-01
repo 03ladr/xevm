@@ -1,4 +1,6 @@
-// Stack
+// Will reorder by value. Sometime soon.
+
+// Stack-oriented opcodes
 pub const PUSH1: u8 = 0x60;
 pub const PUSH2: u8 = 0x61;
 pub const PUSH3: u8 = 0x62;
@@ -71,19 +73,19 @@ pub const SGT: u8 = 0x13;
 pub const SHL: u8 = 0x1B;
 pub const SHR: u8 = 0x1C;
 pub const SAR: u8 = 0x1D;
-// Memory
+// Memory-oriented opcodes
 pub const MLOAD: u8 = 0x51;
 pub const MSTORE: u8 = 0x52;
 pub const MSTORE8: u8 = 0x53;
 pub const MSIZE: u8 = 0x59;
-// Execution Context
+// Bytecode-oriented opcodes
 pub const JUMP: u8 = 0x56;
 pub const JUMPI: u8 = 0x57;
-// Calldata
+// Calldata-oriented opcodes
 pub const CALLDATALOAD: u8 = 0x35;
 pub const CALLDATASIZE: u8 = 0x36;
 pub const CALLDATACOPY: u8 = 0x37;
-// Other
+// Other opcodes
 pub const RETURN: u8 = 0xF3;
 pub const STOP: u8 = 0x00;
 pub const PC: u8 = 0x58;
