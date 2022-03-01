@@ -75,6 +75,7 @@ pub const SAR: u8 = 0x1D;
 pub const MLOAD: u8 = 0x51;
 pub const MSTORE: u8 = 0x52;
 pub const MSTORE8: u8 = 0x53;
+pub const MSIZE: u8 = 0x59;
 // Execution Context
 pub const JUMP: u8 = 0x56;
 pub const JUMPI: u8 = 0x57;

@@ -147,57 +147,49 @@ impl ExecutionContext {
             }};
         }
         macro_rules! signed_term_eval {
-            ( $op: tt ) => {
-                {
-                    let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
-                    let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
-                    let ret = val1 $op val2;
-                    self.stack.push(U256BE::from_u256(U256::try_from(ret).unwrap()))?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $op: tt ) => {{
+                let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
+                let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
+                let ret = val1 $op val2;
+                self.stack.push(U256BE::from_u256(U256::try_from(ret).unwrap()))?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         macro_rules! signed_bool_term_eval {
-            ( $op:tt ) => {
-                {
-                    let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
-                    let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
-                    let mut ret = U256BE::zero();
-                    let evaluation = val1 $op val2;
-                    if evaluation { ret = U256BE::from_u8(1) };
-                    self.stack.push(ret)?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $op:tt ) => {{
+                let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
+                let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
+                let mut ret = U256BE::zero();
+                let evaluation = val1 $op val2;
+                if evaluation { ret = U256BE::from_u8(1) };
+                self.stack.push(ret)?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         macro_rules! bool_term_eval {
-            ( $op:tt ) => {
-                {
-                    let val1 = self.stack.pop()?.to_u256();
-                    let val2 = self.stack.pop()?.to_u256();
-                    let mut ret = U256BE::zero();
-                    let evaluation = val1 $op val2;
-                    if evaluation { ret = U256BE::from_u8(1) };
-                    self.stack.push(ret)?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $op:tt ) => {{
+                let val1 = self.stack.pop()?.to_u256();
+                let val2 = self.stack.pop()?.to_u256();
+                let mut ret = U256BE::zero();
+                let evaluation = val1 $op val2;
+                if evaluation { ret = U256BE::from_u8(1) };
+                self.stack.push(ret)?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         macro_rules! polynomial_term_eval {
-            ( $op1:tt, $op2:tt ) => {
-                {
-                    let val1 = self.stack.pop()?.to_u256();
-                    let val2 = self.stack.pop()?.to_u256();
-                    let val3 = self.stack.pop()?.to_u256();
-                    let ret = (val1 $op1 val2) $op2 val3;
-                    self.stack.push(U256BE::from_u256(ret))?;
-                    self.pc_increment(1);
-                    Ok(())
-                }
-            }
+            ( $op1:tt, $op2:tt ) => {{
+                let val1 = self.stack.pop()?.to_u256();
+                let val2 = self.stack.pop()?.to_u256();
+                let val3 = self.stack.pop()?.to_u256();
+                let ret = (val1 $op1 val2) $op2 val3;
+                self.stack.push(U256BE::from_u256(ret))?;
+                self.pc_increment(1);
+                Ok(())
+            }};
         }
         match opcode {
             PUSH1 => pushn!(1),
@@ -327,8 +319,13 @@ impl ExecutionContext {
             }
             MSTORE8 => {
                 let offset = self.stack.pop()?.as_usize();
-                let value = self.stack.pop()?.to_u256();
-                self.memory.store(offset, U256BE::from_u256(value & U256::from(0xFFu8)))?;
+                let value = self.stack.pop()?;
+                self.memory.store(offset, value.and(U256BE::from_u8(0xFFu8)))?;
+                self.pc_increment(1);
+                Ok(())
+            }
+            MSIZE => {
+                self.stack.push(U256BE::from_usize(self.memory.len()))?;
                 self.pc_increment(1);
                 Ok(())
             }
