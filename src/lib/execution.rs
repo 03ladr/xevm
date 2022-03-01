@@ -6,6 +6,7 @@ use super::statuscode::StatusCode;
 use ethers::types::{I256, U256};
 use sha3::{Digest, Keccak256};
 
+// EVM Execution Context
 pub struct ExecutionContext {
     code: Vec<u8>,
     stack: Stack,
@@ -17,6 +18,7 @@ pub struct ExecutionContext {
     returndata: Vec<u8>,
 }
 impl ExecutionContext {
+    // Initialize execution context
     pub fn init(code: Vec<u8>, stack: Stack, memory: Memory, gas_limit: usize) -> Self {
         ExecutionContext {
             code: code,
@@ -30,6 +32,7 @@ impl ExecutionContext {
         }
     }
 
+    // Load 32-byte word from calldata at offset
     pub fn calldata_load(&mut self, offset: usize) -> Result<Vec<u8>, StatusCode> {
         let len_original = self.calldata.len();
         if len_original <= offset + 31 { self.calldata.resize(offset + 32, 0); };
@@ -38,6 +41,7 @@ impl ExecutionContext {
         Ok(ret)
     }
 
+    // Deduct gas from limit
     pub fn sub_gas(&mut self, by: usize) -> Result<(), StatusCode> {
         if by > self.gas_limit {
             return Err(StatusCode::OutOfGas);
@@ -46,26 +50,31 @@ impl ExecutionContext {
         Ok(())
     }
 
+    // Halt execution
     pub fn stop(&mut self) -> () {
         self.stopped = true
     }
 
+    // Set program counter to destination
     pub fn pc_jump(&mut self, dest: usize) -> Result<(), StatusCode> {
         if dest >= self.code.len() { return Err(StatusCode::BadJumpDest); };
         self.pc = dest;
         Ok(())
     }
 
-    pub fn pc_increment(&mut self, idx: usize) -> () {
-        self.pc = self.pc + idx
+    // Increment program counter by value
+    pub fn pc_increment(&mut self, val: usize) -> () {
+        self.pc = self.pc + val
     }
 
-    pub fn read_code(&mut self, idx: usize) -> Result<u8, StatusCode> {
-        if self.pc + idx >= self.code.len() { return Err(StatusCode::Completion); };
-        let value = self.code[self.pc + idx];
+    // Read code at (program counter + offset)
+    pub fn read_code(&mut self, offset: usize) -> Result<u8, StatusCode> {
+        if self.pc + offset >= self.code.len() { return Err(StatusCode::Completion); };
+        let value = self.code[self.pc + offset];
         Ok(value)
     }
 
+    // Begin code execution
     pub fn run(&mut self) -> Result<(), StatusCode> {
         while !self.stopped {
             let opcode: u8 = self.read_code(0)?;
@@ -87,7 +96,9 @@ impl ExecutionContext {
         Ok(())
     }
 
+    // Execute opcode
     pub fn exec(&mut self, opcode: u8) -> Result<(), StatusCode> {
+        // Push n values onto stack
         macro_rules! pushn {
             ( $n:expr ) => {{
                 let slice = &self.code[self.pc + 1..=self.pc + $n];
@@ -97,6 +108,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Duplicate value onto stack at index (len-n)
         macro_rules! dupn {
             ( $n:expr ) => {{
                 let ret = self.stack.peek(self.stack.len() - $n)?;
@@ -105,6 +117,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Swap 1st and nth stack items
         macro_rules! swapn {
             ( $n:expr ) => {{
                 let top = self.stack.peek(0)?;
@@ -115,6 +128,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Evaluate: stack[0].$operator(stack[1])
         macro_rules! arith_eval {
             ( $op:tt ) => {{
                 let val1 = self.stack.pop()?.to_u256();
@@ -126,6 +140,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Evaluate: stack[0].$operator(stack[1])
         macro_rules! checked_arith_eval {
             ( $op:tt ) => {{
                 let val1 = self.stack.pop()?.to_u256();
@@ -136,6 +151,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Evaluate: stack[0] $operator stack[1]
         macro_rules! term_eval {
             ( $op:tt ) => {{
                 let val1 = self.stack.pop()?.to_u256();
@@ -146,6 +162,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Evaluate: I256(stack[0]) $operator I256(stack[1])
         macro_rules! signed_term_eval {
             ( $op: tt ) => {{
                 let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
@@ -156,6 +173,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Evaluate: I256(stack[0]) $operator I256(stack[1])
         macro_rules! signed_bool_term_eval {
             ( $op:tt ) => {{
                 let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
@@ -168,6 +186,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Evaluate: stack[0] $operator stack[1]
         macro_rules! bool_term_eval {
             ( $op:tt ) => {{
                 let val1 = self.stack.pop()?.to_u256();
@@ -180,6 +199,7 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
+        // Evaluate: (stack[0] $operator1 stack[1]) $operator2 stack[2]
         macro_rules! polynomial_term_eval {
             ( $op1:tt, $op2:tt ) => {{
                 let val1 = self.stack.pop()?.to_u256();

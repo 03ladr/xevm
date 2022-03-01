@@ -1,4 +1,5 @@
 #[derive(Debug)]
+// EVM(C) Status Codes
 pub enum StatusCode {
     Completion,
     Failure,
