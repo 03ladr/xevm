@@ -140,17 +140,6 @@ impl ExecutionContext {
                 Ok(())
             }};
         }
-        // Evaluate: stack[0].$operator(stack[1])
-        macro_rules! checked_arith_eval {
-            ( $op:tt ) => {{
-                let val1 = self.stack.pop()?.to_u256();
-                let val2 = self.stack.pop()?.to_u256();
-                let ret = val1.$op(val2).unwrap();
-                self.stack.push(U256BE::from_u256(ret))?;
-                self.pc_increment(1);
-                Ok(())
-            }};
-        }
         // Evaluate: stack[0] $operator stack[1]
         macro_rules! term_eval {
             ( $op:tt ) => {{
@@ -264,7 +253,14 @@ impl ExecutionContext {
             MUL => arith_eval!(overflowing_mul),
             ADD => arith_eval!(overflowing_add),
             SUB => arith_eval!(overflowing_sub),
-            DIV => checked_arith_eval!(checked_div),
+            DIV => {
+                let val1 = self.stack.pop()?.to_u256();
+                let val2 = self.stack.pop()?.to_u256();
+                let ret = val1.checked_div(val2).unwrap();
+                self.stack.push(U256BE::from_u256(ret))?;
+                self.pc_increment(1);
+                Ok(())
+            },
             EXP => arith_eval!(overflowing_pow),
             SDIV => signed_term_eval!(/),
             MOD => term_eval!(%),
