@@ -3,7 +3,7 @@ use super::statuscode::StatusCode;
 
 pub struct Memory {
     // Vector of unsigned 8-bit integers to represent EVM memory
-    pub storage: Vec<u8>,
+    storage: Vec<u8>,
 }
 impl Memory {
     // Initialize memory with length 4096
