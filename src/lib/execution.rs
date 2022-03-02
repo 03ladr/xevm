@@ -296,12 +296,6 @@ impl ExecutionContext {
                 let val = self.stack.pop()?;
                 self.stack_step_push(val.not())
             },
-            PC => {
-                self.stack_step_push(U256BE::from_usize(self.pc))
-            }
-            GAS => {
-                self.stack_step_push(U256BE::from_usize(self.gas_limit))
-            },
             MLOAD => {
                 let offset = self.stack.pop()?.to_usize();
                 let loaded = self.memory.load(offset)?;
@@ -321,6 +315,15 @@ impl ExecutionContext {
                 self.pc_increment(1);
                 Ok(())
             },
+            SHA3 => {
+                let offset = self.stack.pop()?.to_usize();
+                let length = self.stack.pop()?.to_usize();
+                let value = self.memory.load_range(offset, length)?;
+                let mut hasher = Keccak256::default();
+                hasher.update(value.as_slice());
+                let ret = U256BE::from_slice(hasher.finalize().to_vec().as_slice());
+                self.stack_step_push(ret)
+            },
             MSIZE => {
                 let memlen = self.memory.len();
                 self.stack_step_push(U256BE::from_usize(memlen))
@@ -333,38 +336,28 @@ impl ExecutionContext {
             CALLDATASIZE => {
                 self.stack_step_push(U256BE::from_usize(self.calldata.len()))
             },
-            JUMP => { let dest = self.stack.pop()?; self.pc_jump(dest.to_usize()) },
             JUMPI => {
                 let dest = self.stack.pop()?;
                 let cond = self.stack.pop()?.to_u256();
                 if cond.is_zero() { self.pc_increment(1); Ok(()) }
                 else { self.pc_jump(dest.to_usize()) }
             },
-            SHA3 => {
-                let offset = self.stack.pop()?.to_usize();
-                let length = self.stack.pop()?.to_usize();
-                let value = self.memory.load_range(offset, length)?;
-                let mut hasher = Keccak256::default();
-                hasher.update(value.as_slice());
-                let ret = U256BE::from_slice(hasher.finalize().to_vec().as_slice());
-                self.stack_step_push(ret)
-            },
+            JUMP => { let dest = self.stack.pop()?; self.pc_jump(dest.to_usize()) },
+            PC => self.stack_step_push(U256BE::from_usize(self.pc)),
+            GAS => self.stack_step_push(U256BE::from_usize(self.gas_limit)),
+            GASLIMIT => self.stack_step_push(U256BE::from_usize(self.block.gaslimit)),
+            BASEFEE => self.stack_step_push(U256BE::from_usize(self.block.basegas)),
             COINBASE => self.stack_step_push(self.block.coinbase.to_u256be()),
             TIMESTAMP => self.stack_step_push(self.block.timestamp),
             NUMBER => self.stack_step_push(U256BE::from_usize(self.block.blocknumber)),
             DIFFICULTY => self.stack_step_push(U256BE::from_usize(self.block.difficulty)),
-            BASEFEE => self.stack_step_push(U256BE::from_usize(self.block.basegas)),
-            GASLIMIT => self.stack_step_push(U256BE::from_usize(self.block.gaslimit)),
+            STOP => { self.stop(); Err(StatusCode::Completion) },
             RETURN => {
                 let offset = self.stack.pop()?.to_usize();
                 let length = self.stack.pop()?.to_usize();
                 self.returndata = self.memory.load_range(offset, length)?;
                 self.stop();
                 println!("Return Data: {:?}", self.returndata);
-                Err(StatusCode::Completion)
-            },
-            STOP => {
-                self.stop();
                 Err(StatusCode::Completion)
             },
             _ => Err(StatusCode::UndefinedInstruction),

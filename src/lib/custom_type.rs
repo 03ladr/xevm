@@ -38,28 +38,40 @@ impl U256BE {
     // AND bitwise operator: self & value
     pub fn and(self, value: U256BE) -> Self {
         let mut ret = [0u8; 32];
-        self.0.into_iter().enumerate().for_each(|(idx, x)| ret[idx] = x & value.0[idx]);
+        self.0
+            .into_iter()
+            .enumerate()
+            .for_each(|(idx, x)| ret[idx] = x & value.0[idx]);
         U256BE(ret)
     }
 
     // OR bitwise operator: self | value
     pub fn or(self, value: U256BE) -> Self {
         let mut ret = [0u8; 32];
-        self.0.into_iter().enumerate().for_each(|(idx, x)| ret[idx] = x | value.0[idx]);
+        self.0
+            .into_iter()
+            .enumerate()
+            .for_each(|(idx, x)| ret[idx] = x | value.0[idx]);
         U256BE(ret)
     }
 
     // XOR bitwise operator: self ^ value
     pub fn xor(self, value: U256BE) -> Self {
         let mut ret = [0u8; 32];
-        self.0.into_iter().enumerate().for_each(|(idx, x)| ret[idx] = x ^ value.0[idx]);
+        self.0
+            .into_iter()
+            .enumerate()
+            .for_each(|(idx, x)| ret[idx] = x ^ value.0[idx]);
         U256BE(ret)
     }
 
     // Equivalence operator: self == value
     pub fn eq(self, value: U256BE) -> Self {
-        if self.0 == value.0 { U256BE::from_u8(1) }
-        else { U256BE::zero() }
+        if self.0 == value.0 {
+            U256BE::from_u8(1)
+        } else {
+            U256BE::zero()
+        }
     }
 
     // Initialize U256BE from slice

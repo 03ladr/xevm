@@ -1,4 +1,4 @@
-use super::custom_type::{U256BE, U160};
+use super::custom_type::{U160, U256BE};
 
 // Block Object
 pub struct Block {

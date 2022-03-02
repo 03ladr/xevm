@@ -108,8 +108,8 @@ pub fn gas_fetch(key: u8) -> usize {
         | PUSH12 | PUSH13 | PUSH14 | PUSH15 | PUSH16 | DUP1 | DUP2 | DUP3 | DUP4 | DUP5 | DUP6
         | DUP7 | DUP8 | DUP9 | DUP10 | DUP11 | DUP12 | DUP13 | DUP14 | DUP15 | DUP16 | SWAP1
         | SWAP2 | SWAP3 | SWAP4 | SWAP5 | SWAP6 | SWAP7 | SWAP8 | SWAP9 | SWAP10 | SWAP11 | XOR
-        | SWAP12 | SWAP13 | SWAP14 | SWAP15 | SWAP16 | ADD | SUB | EQ | ISZERO | AND | OR
-        | NOT | GT | LT | SGT | SLT | SHL | SHR | SAR | CALLDATALOAD => 3,
+        | SWAP12 | SWAP13 | SWAP14 | SWAP15 | SWAP16 | ADD | SUB | EQ | ISZERO | AND | OR | NOT
+        | GT | LT | SGT | SLT | SHL | SHR | SAR | CALLDATALOAD => 3,
         MUL | DIV | SDIV | MOD | SMOD => 5,
         JUMP | ADDMOD | MULMOD => 8,
         JUMPI => 10,
