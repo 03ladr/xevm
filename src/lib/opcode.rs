@@ -94,6 +94,7 @@ pub const SHA3: u8 = 0x20;
 
 // Gas fetcher
 pub fn gas_fetch(key: u8) -> usize {
+    // Linter makes this mess. Must configure.
     match key {
         POP | PC | GAS | CALLDATASIZE | MSIZE => 2,
         PUSH1 | PUSH2 | PUSH3 | PUSH4 | PUSH5 | PUSH6 | PUSH7 | PUSH8 | PUSH9 | PUSH10 | PUSH11
