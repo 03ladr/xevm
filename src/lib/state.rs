@@ -6,13 +6,13 @@ pub struct Block {
     pub basegas: usize,
     pub gaslimit: usize,
     pub difficulty: usize,
-    pub nonce: usize,
+    // pub nonce: usize,
     pub coinbase: U160,
     pub timestamp: U256BE,
-    pub mixhash: U256BE,
-    pub parenthash: U256BE,
-    pub transactions: U256BE,
-    pub stateroot: U256BE,
+    // pub mixhash: U256BE,
+    // pub parenthash: U256BE,
+    // pub transactions: U256BE,
+    // pub stateroot: U256BE,
 }
 impl Block {
     // Initialize block with arbitrary values for testing
@@ -23,12 +23,12 @@ impl Block {
             gaslimit: 8000000,
             difficulty: 6,
             timestamp: U256BE::from_u8(8),
-            nonce: 7,
+            // nonce: 7,
             coinbase: U256BE::from_u8(4).to_u160(),
-            mixhash: U256BE::from_u8(2),
-            parenthash: U256BE::from_u8(3),
-            transactions: U256BE::from_u8(9),
-            stateroot: U256BE::from_u8(5)
+            // mixhash: U256BE::from_u8(2),
+            // parenthash: U256BE::from_u8(3),
+            // transactions: U256BE::from_u8(9),
+            // stateroot: U256BE::from_u8(5)
         }
     }
 }
