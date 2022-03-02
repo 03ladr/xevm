@@ -96,7 +96,7 @@ impl U256BE {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 // Big endian u160 type
 pub struct U160([u8; 20]);
 impl U160 {

@@ -85,6 +85,13 @@ pub const JUMPI: u8 = 0x57;
 pub const CALLDATALOAD: u8 = 0x35;
 pub const CALLDATASIZE: u8 = 0x36;
 pub const CALLDATACOPY: u8 = 0x37;
+// State-oriented opcodes
+pub const COINBASE: u8 = 0x41;
+pub const TIMESTAMP: u8 = 0x42;
+pub const NUMBER: u8 = 0x43;
+pub const DIFFICULTY: u8 = 0x44;
+pub const GASLIMIT: u8 = 0x45;
+pub const BASEFEE: u8 = 0x48;
 // Other opcodes
 pub const RETURN: u8 = 0xF3;
 pub const STOP: u8 = 0x00;

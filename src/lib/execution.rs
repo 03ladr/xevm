@@ -70,6 +70,13 @@ impl ExecutionContext {
         self.pc = self.pc + val
     }
 
+    // Push value onto stack then increment program counter by 1
+    pub fn stack_step_push(&mut self, val: U256BE) -> Result<(), StatusCode> {
+        self.stack.push(val)?;
+        self.pc_increment(1);
+        Ok(())
+    }
+
     // Read code at (program counter + offset)
     pub fn read_code(&mut self, offset: usize) -> Result<u8, StatusCode> {
         if self.pc + offset >= self.code.len() { return Err(StatusCode::Completion); };
@@ -115,9 +122,7 @@ impl ExecutionContext {
         macro_rules! dupn {
             ( $n:expr ) => {{
                 let ret = self.stack.peek(self.stack.len() - $n)?;
-                self.stack.push(ret)?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(ret)
             }};
         }
         // Swap 1st and nth stack items
@@ -138,9 +143,7 @@ impl ExecutionContext {
                 let val2 = self.stack.pop()?.to_u256();
                 let ret = val1.$op(val2);
                 if ret.1 { self.stop(); return Err(StatusCode::Revert); };
-                self.stack.push(U256BE::from_u256(ret.0))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_u256(ret.0))
             }};
         }
         // Evaluate: stack[0] $operator stack[1]
@@ -149,9 +152,7 @@ impl ExecutionContext {
                 let val1 = self.stack.pop()?.to_u256();
                 let val2 = self.stack.pop()?.to_u256();
                 let ret = val1 $op val2;
-                self.stack.push(U256BE::from_u256(ret))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_u256(ret))
             }};
         }
         // Evaluate: I256(stack[0]) $operator I256(stack[1])
@@ -160,9 +161,7 @@ impl ExecutionContext {
                 let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
                 let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
                 let ret = val1 $op val2;
-                self.stack.push(U256BE::from_u256(U256::try_from(ret).unwrap()))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_u256(U256::try_from(ret).unwrap()))
             }};
         }
         // Evaluate: I256(stack[0]) $operator I256(stack[1])
@@ -173,9 +172,7 @@ impl ExecutionContext {
                 let mut ret = U256BE::zero();
                 let evaluation = val1 $op val2;
                 if evaluation { ret = U256BE::from_u8(1) };
-                self.stack.push(ret)?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(ret)
             }};
         }
         // Evaluate: stack[0] $operator stack[1]
@@ -186,9 +183,7 @@ impl ExecutionContext {
                 let mut ret = U256BE::zero();
                 let evaluation = val1 $op val2;
                 if evaluation { ret = U256BE::from_u8(1) };
-                self.stack.push(ret)?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(ret)
             }};
         }
         // Evaluate: (stack[0] $operator1 stack[1]) $operator2 stack[2]
@@ -198,9 +193,7 @@ impl ExecutionContext {
                 let val2 = self.stack.pop()?.to_u256();
                 let val3 = self.stack.pop()?.to_u256();
                 let ret = (val1 $op1 val2) $op2 val3;
-                self.stack.push(U256BE::from_u256(ret))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_u256(ret))
             }};
         }
         match opcode {
@@ -260,9 +253,7 @@ impl ExecutionContext {
                 let val1 = self.stack.pop()?.to_u256();
                 let val2 = self.stack.pop()?.to_u256();
                 let ret = val1.checked_div(val2).unwrap();
-                self.stack.push(U256BE::from_u256(ret))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_u256(ret))
             },
             EXP => arith_eval!(overflowing_pow),
             SDIV => signed_term_eval!(/),
@@ -280,60 +271,41 @@ impl ExecutionContext {
             EQ => {
                 let val1 = self.stack.pop()?;
                 let val2 = self.stack.pop()?;
-                println!("{:?}", val2.to_u160());
-                self.stack.push(val1.eq(val2))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(val1.eq(val2))
             },
             ISZERO => {
                 let val = self.stack.pop()?;
-                self.stack.push(val.eq(U256BE::zero()))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(val.eq(U256BE::zero()))
             },
             AND => {
                 let val1 = self.stack.pop()?;
                 let val2 = self.stack.pop()?;
-                self.stack.push(val1.and(val2))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(val1.and(val2))
             },
             OR => {
                 let val1 = self.stack.pop()?;
                 let val2 = self.stack.pop()?;
-                self.stack.push(val1.or(val2))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(val1.or(val2))
             },
             XOR => {
                 let val1 = self.stack.pop()?;
                 let val2 = self.stack.pop()?;
-                self.stack.push(val1.xor(val2))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(val1.xor(val2))
             },
             NOT => {
                 let val = self.stack.pop()?;
-                self.stack.push(val.not())?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(val.not())
             },
             PC => {
-                self.stack.push(U256BE::from_usize(self.pc))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_usize(self.pc))
             }
             GAS => {
-                self.stack.push(U256BE::from_usize(self.gas_limit))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_usize(self.gas_limit))
             },
             MLOAD => {
                 let offset = self.stack.pop()?.to_usize();
                 let loaded = self.memory.load(offset)?;
-                self.stack.push(U256BE::from_slice(loaded.as_slice()))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_slice(loaded.as_slice()))
             },
             MSTORE => {
                 let offset = self.stack.pop()?.to_usize();
@@ -350,21 +322,16 @@ impl ExecutionContext {
                 Ok(())
             },
             MSIZE => {
-                self.stack.push(U256BE::from_usize(self.memory.len()))?;
-                self.pc_increment(1);
-                Ok(())
+                let memlen = self.memory.len();
+                self.stack_step_push(U256BE::from_usize(memlen))
             },
             CALLDATALOAD => {
                 let offset = self.stack.pop()?.to_usize();
                 let loaded = self.calldata_load(offset)?;
-                self.stack.push(U256BE::from_slice(loaded.as_slice()))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_slice(loaded.as_slice()))
             },
             CALLDATASIZE => {
-                self.stack.push(U256BE::from_usize(self.calldata.len()))?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(U256BE::from_usize(self.calldata.len()))
             },
             JUMP => { let dest = self.stack.pop()?; self.pc_jump(dest.to_usize()) },
             JUMPI => {
@@ -380,10 +347,14 @@ impl ExecutionContext {
                 let mut hasher = Keccak256::default();
                 hasher.update(value.as_slice());
                 let ret = U256BE::from_slice(hasher.finalize().to_vec().as_slice());
-                self.stack.push(ret)?;
-                self.pc_increment(1);
-                Ok(())
+                self.stack_step_push(ret)
             },
+            COINBASE => self.stack_step_push(self.block.coinbase.to_u256be()),
+            TIMESTAMP => self.stack_step_push(self.block.timestamp),
+            NUMBER => self.stack_step_push(U256BE::from_usize(self.block.blocknumber)),
+            DIFFICULTY => self.stack_step_push(U256BE::from_usize(self.block.difficulty)),
+            BASEFEE => self.stack_step_push(U256BE::from_usize(self.block.basegas)),
+            GASLIMIT => self.stack_step_push(U256BE::from_usize(self.block.gaslimit)),
             RETURN => {
                 let offset = self.stack.pop()?.to_usize();
                 let length = self.stack.pop()?.to_usize();
