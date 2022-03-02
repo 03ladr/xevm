@@ -9,13 +9,18 @@ impl U256BE {
         self.0
     }
 
-    // Return self as usize
-    pub fn as_usize(self) -> usize {
+    // Convert self to usize
+    pub fn to_usize(self) -> usize {
         let ret: [u8; 8] = self.0[24..=31].try_into().unwrap();
         usize::from_be_bytes(ret)
     }
 
-    // Convert self to u256 then return
+    // Convert self to u160
+    pub fn to_u160(self) -> U160 {
+        U160(self.0[12..].try_into().unwrap())
+    }
+
+    // Convert self to u256
     pub fn to_u256(self) -> U256 {
         U256::from_big_endian(&self.0)
     }
@@ -88,5 +93,15 @@ impl U256BE {
     // Return self as zero
     pub fn zero() -> Self {
         U256BE([0; 32])
+    }
+}
+
+#[derive(Debug)]
+// Big endian u160 type
+pub struct U160([u8; 20]);
+impl U160 {
+    // Convert self to u256be
+    pub fn to_u256be(self) -> U256BE {
+        U256BE::from_slice(&self.0)
     }
 }
