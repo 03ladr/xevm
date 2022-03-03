@@ -4,7 +4,7 @@ use super::opcode::*;
 use super::stack::Stack;
 use super::statuscode::StatusCode;
 use super::state::Block;
-use ethers::types::{I256, U256};
+// use ethnum::{u256, i256};
 use sha3::{Digest, Keccak256};
 
 // EVM Execution Context
@@ -137,62 +137,30 @@ impl ExecutionContext {
             }};
         }
         // Evaluate: stack[0].$operator(stack[1])
-        macro_rules! arith_eval {
-            ( $op:tt ) => {{
-                let val1 = self.stack.pop()?.to_u256();
-                let val2 = self.stack.pop()?.to_u256();
-                let ret = val1.$op(val2);
-                if ret.1 { self.stop(); return Err(StatusCode::Revert); };
-                self.stack_step_push(U256BE::from_u256(ret.0))
-            }};
-        }
-        // Evaluate: stack[0] $operator stack[1]
         macro_rules! term_eval {
             ( $op:tt ) => {{
                 let val1 = self.stack.pop()?.to_u256();
                 let val2 = self.stack.pop()?.to_u256();
-                let ret = val1 $op val2;
+                let ret = val1.$op(val2).0;
                 self.stack_step_push(U256BE::from_u256(ret))
             }};
         }
-        // Evaluate: I256(stack[0]) $operator I256(stack[1])
+        // Evaluate: i256<stack[0]>.$operator(i256<stack[1]>)
         macro_rules! signed_term_eval {
-            ( $op: tt ) => {{
-                let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
-                let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
-                let ret = val1 $op val2;
-                self.stack_step_push(U256BE::from_u256(U256::try_from(ret).unwrap()))
-            }};
-        }
-        // Evaluate: I256(stack[0]) $operator I256(stack[1])
-        macro_rules! signed_bool_term_eval {
             ( $op:tt ) => {{
-                let val1 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
-                let val2 = I256::try_from(self.stack.pop()?.to_u256()).unwrap();
-                let mut ret = U256BE::zero();
-                let evaluation = val1 $op val2;
-                if evaluation { ret = U256BE::from_u8(1) };
-                self.stack_step_push(ret)
+                let val1 = self.stack.pop()?.to_i256();
+                let val2 = self.stack.pop()?.to_i256();
+                let ret = val1.$op(val2).0;
+                self.stack_step_push(U256BE::from_i256(ret))
             }};
         }
-        // Evaluate: stack[0] $operator stack[1]
-        macro_rules! bool_term_eval {
-            ( $op:tt ) => {{
-                let val1 = self.stack.pop()?.to_u256();
-                let val2 = self.stack.pop()?.to_u256();
-                let mut ret = U256BE::zero();
-                let evaluation = val1 $op val2;
-                if evaluation { ret = U256BE::from_u8(1) };
-                self.stack_step_push(ret)
-            }};
-        }
-        // Evaluate: (stack[0] $operator1 stack[1]) $operator2 stack[2]
-        macro_rules! polynomial_term_eval {
-            ( $op1:tt, $op2:tt ) => {{
+        // Evaluate: stack[0].$operator1(stack[1]).$operator2(stack[2])
+        macro_rules! mod_term_eval {
+            ( $op1:tt ) => {{
                 let val1 = self.stack.pop()?.to_u256();
                 let val2 = self.stack.pop()?.to_u256();
                 let val3 = self.stack.pop()?.to_u256();
-                let ret = (val1 $op1 val2) $op2 val3;
+                let ret = val1.$op1(val2).0.overflowing_rem(val3).0;
                 self.stack_step_push(U256BE::from_u256(ret))
             }};
         }
@@ -246,36 +214,63 @@ impl ExecutionContext {
             SWAP14 => swapn!(14),
             SWAP15 => swapn!(15),
             SWAP16 => swapn!(16),
-            MUL => arith_eval!(overflowing_mul),
-            ADD => arith_eval!(overflowing_add),
-            SUB => arith_eval!(overflowing_sub),
-            DIV => {
+            MUL => term_eval!(overflowing_mul),
+            ADD => term_eval!(overflowing_add),
+            SUB => term_eval!(overflowing_sub),
+            DIV => term_eval!(overflowing_div),
+            MOD => term_eval!(overflowing_rem),
+            EXP => {
                 let val1 = self.stack.pop()?.to_u256();
-                let val2 = self.stack.pop()?.to_u256();
-                let ret = val1.checked_div(val2).unwrap();
-                self.stack_step_push(U256BE::from_u256(ret))
+                let val2 = self.stack.pop()?.to_u32();
+                self.stack_step_push(U256BE::from_u256(val1.overflowing_pow(val2).0))
             },
-            EXP => arith_eval!(overflowing_pow),
-            SDIV => signed_term_eval!(/),
-            MOD => term_eval!(%),
-            SMOD => signed_term_eval!(%),
-            ADDMOD => polynomial_term_eval!(+, %),
-            MULMOD => polynomial_term_eval!(*, %),
-            GT => bool_term_eval!(<),
-            SGT => signed_bool_term_eval!(<),
-            LT => bool_term_eval!(>),
-            SLT => signed_bool_term_eval!(>),
-            SHL => term_eval!(<<),
-            SHR => term_eval!(>>),
-            SAR => signed_term_eval!(>>),
+            SDIV => signed_term_eval!(overflowing_div),
+            SMOD => signed_term_eval!(overflowing_rem),
+            ADDMOD => mod_term_eval!(overflowing_add),
+            MULMOD => mod_term_eval!(overflowing_mul),
+            GT => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack_step_push(val1.gt(val2))
+            },
+            SGT => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack_step_push(val1.sgt(val2))
+            },
+            LT => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack_step_push(val1.lt(val2))
+            },
+            SLT => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack_step_push(val1.slt(val2))
+            },
+            SHL => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack_step_push(val1.shl(val2))
+            },
+            SHR => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack_step_push(val1.shr(val2))
+            },
+            SAR => {
+                let val1 = self.stack.pop()?;
+                let val2 = self.stack.pop()?;
+                self.stack_step_push(val1.sar(val2))
+            },
             EQ => {
                 let val1 = self.stack.pop()?;
                 let val2 = self.stack.pop()?;
-                self.stack_step_push(val1.eq(val2))
+                self.stack_step_push(val1.uint_eq(val2))
             },
             ISZERO => {
                 let val = self.stack.pop()?;
-                self.stack_step_push(val.eq(U256BE::zero()))
+                self.stack_step_push(val.uint_is_zero())
             },
             AND => {
                 let val1 = self.stack.pop()?;
@@ -338,7 +333,7 @@ impl ExecutionContext {
             },
             JUMPI => {
                 let dest = self.stack.pop()?;
-                let cond = self.stack.pop()?.to_u256();
+                let cond = self.stack.pop()?;
                 if cond.is_zero() { self.pc_increment(1); Ok(()) }
                 else { self.pc_jump(dest.to_usize()) }
             },
@@ -347,7 +342,7 @@ impl ExecutionContext {
             GAS => self.stack_step_push(U256BE::from_usize(self.gas_limit)),
             GASLIMIT => self.stack_step_push(U256BE::from_usize(self.block.gaslimit)),
             BASEFEE => self.stack_step_push(U256BE::from_usize(self.block.basegas)),
-            COINBASE => self.stack_step_push(self.block.coinbase.to_u256be()),
+            COINBASE => self.stack_step_push(self.block.coinbase.to_u256_be()),
             TIMESTAMP => self.stack_step_push(self.block.timestamp),
             NUMBER => self.stack_step_push(U256BE::from_usize(self.block.blocknumber)),
             DIFFICULTY => self.stack_step_push(U256BE::from_usize(self.block.difficulty)),

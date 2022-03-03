@@ -1,4 +1,4 @@
-use ethers::types::U256;
+use ethnum::{u256, i256};
 
 #[derive(Debug, Clone, Copy)]
 // Big endian u256 type
@@ -21,8 +21,19 @@ impl U256BE {
     }
 
     // Convert self to u256
-    pub fn to_u256(self) -> U256 {
-        U256::from_big_endian(&self.0)
+    pub fn to_u256(self) -> u256 {
+        u256::from_be_bytes(self.0)
+    }
+
+    // Convert self to i256
+    pub fn to_i256(self) -> i256 {
+        i256::from_be_bytes(self.0)
+    }
+
+    // Convert self to u32
+    pub fn to_u32(self) -> u32 {
+        let ret: [u8; 4] = self.0[28..=31].try_into().unwrap();
+        u32::from_be_bytes(ret)
     }
 
     // NOT bitwise operator: !self
@@ -65,13 +76,69 @@ impl U256BE {
         U256BE(ret)
     }
 
-    // Equivalence operator: self == value
-    pub fn eq(self, value: U256BE) -> Self {
-        if self.0 == value.0 {
+    // GT operator: self > value
+    pub fn gt(self, value: U256BE) -> Self {
+        if self.0 > value.0 { U256BE::from_u8(1) }
+        else { U256BE([0;32]) }
+    }
+
+    // LT operator: self < value
+    pub fn lt(self, value: U256BE) -> Self {
+        if self.0 < value.0 { U256BE::from_u8(1) }
+        else { U256BE([0;32]) }
+    }
+
+    // SGT operator: int256<self> > int256<value>
+    pub fn sgt(self, value: U256BE) -> Self {
+        if i256::from_be_bytes(self.0) > i256::from_be_bytes(value.0) {
             U256BE::from_u8(1)
-        } else {
-            U256BE::zero()
-        }
+        } else { U256BE([0;32]) }
+    }
+
+    // SLT operator: int256<self> < <int256<value>
+    pub fn slt(self, value: U256BE) -> Self {
+        if i256::from_be_bytes(self.0) < i256::from_be_bytes(value.0) {
+            U256BE::from_u8(1)
+        } else { U256BE([0;32]) }
+    }
+
+    // SHL operator: int256<self> << int256<value>
+    pub fn shl(self, value: U256BE) -> Self {
+        U256BE::from_u256(u256::from_be_bytes(self.0) << u256::from_be_bytes(value.0))
+    } // Todo: Must overflow
+
+    // SHR operator: int256<self> << int256<value>
+    pub fn shr(self, value: U256BE) -> Self {
+        U256BE::from_u256(u256::from_be_bytes(self.0) >> u256::from_be_bytes(value.0))
+    } // Todo: Must overflow
+
+    // SAR operator: int256<self> >> int256<value>
+    pub fn sar(self, value: U256BE) -> Self {
+        U256BE::from_i256(i256::from_be_bytes(self.0) >> i256::from_be_bytes(value.0))
+    } // Todo:  Must overflow
+
+    // Equivalence operator: self == value
+    pub fn eq(self, value: U256BE) -> bool {
+        if self.0 == value.0 { true }
+        else { false }
+    }
+
+    // Equivalence operator: self == value, return U256BE 1/0
+    pub fn uint_eq(self, value: U256BE) -> Self {
+        if self.0 == value.0 { U256BE::from_u8(1) }
+        else { U256BE::zero() }
+    }
+
+    // Returns whether self is equal to [0;32]
+    pub fn is_zero(self) -> bool {
+        if self.0 == [0; 32] { true }
+        else { false }
+    }
+
+    // Returns whether self is equal to [0;32], return U256BE 1/0
+    pub fn uint_is_zero(self) -> Self {
+        if self.0 == [0; 32] { U256BE::from_u8(1) }
+        else { U256BE::zero() }
     }
 
     // Initialize U256BE from slice
@@ -95,10 +162,17 @@ impl U256BE {
         U256BE(ret)
     }
 
-    // Initialize U256BE from Ethers U256
-    pub fn from_u256(value: U256) -> Self {
+    // Initialize U256BE from u256
+    pub fn from_u256(value: u256) -> Self {
         let mut ret: [u8; 32] = [0; 32];
-        value.to_big_endian(&mut ret);
+        ret[..].clone_from_slice(&value.to_be_bytes());
+        U256BE(ret)
+    }
+
+    // Initialize U256BE from i256
+    pub fn from_i256(value: i256) -> Self {
+        let mut ret: [u8; 32] = [0; 32];
+        ret[..].clone_from_slice(&value.to_be_bytes());
         U256BE(ret)
     }
 
@@ -112,8 +186,8 @@ impl U256BE {
 // Big endian u160 type
 pub struct U160([u8; 20]);
 impl U160 {
-    // Convert self to u256be
-    pub fn to_u256be(self) -> U256BE {
+    // Convert self to U256BE
+    pub fn to_u256_be(self) -> U256BE {
         U256BE::from_slice(&self.0)
     }
 }
