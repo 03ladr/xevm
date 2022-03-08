@@ -291,6 +291,12 @@ impl ExecutionContext {
                 let val = self.stack.pop()?;
                 self.stack_step_push(val.not())
             },
+            BYTE => {
+                let nth = self.stack.pop()?.to_usize();
+                let val = self.stack.pop()?.as_slice();
+                if nth >= val.len() { return self.stack_step_push(U256BE::zero()); };
+                self.stack_step_push(U256BE::from_u8(val[nth]))
+            },
             MLOAD => {
                 let offset = self.stack.pop()?.to_usize();
                 let loaded = self.memory.load(offset)?;
@@ -330,6 +336,12 @@ impl ExecutionContext {
             },
             CALLDATASIZE => {
                 self.stack_step_push(U256BE::from_usize(self.calldata.len()))
+            },
+            JUMPDEST => {
+                let dest = self.stack.pop()?.to_usize();
+                if dest >= self.code.len() { return Err(StatusCode::BadJumpDest); };
+                self.pc_increment(1);
+                Ok(())
             },
             JUMPI => {
                 let dest = self.stack.pop()?;

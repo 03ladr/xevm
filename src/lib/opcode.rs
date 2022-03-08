@@ -50,6 +50,7 @@ pub const SWAP13: u8 = 0x9C;
 pub const SWAP14: u8 = 0x9D;
 pub const SWAP15: u8 = 0x9E;
 pub const SWAP16: u8 = 0x9F;
+pub const BYTE: u8 = 0x1A;
 pub const MUL: u8 = 0x02;
 pub const ADD: u8 = 0x01;
 pub const SUB: u8 = 0x03;
@@ -81,6 +82,7 @@ pub const MSIZE: u8 = 0x59;
 // Bytecode-oriented opcodes
 pub const JUMP: u8 = 0x56;
 pub const JUMPI: u8 = 0x57;
+pub const JUMPDEST: u8 = 0x5B;
 // Calldata-oriented opcodes
 pub const CALLDATALOAD: u8 = 0x35;
 pub const CALLDATASIZE: u8 = 0x36;
@@ -103,13 +105,14 @@ pub const SHA3: u8 = 0x20;
 pub fn gas_fetch(key: u8) -> usize {
     // Linter makes this mess. Must configure.
     match key {
-        POP | PC | GAS | CALLDATASIZE | MSIZE => 2,
+        JUMPDEST => 1,
+        POP | PC | GAS | CALLDATASIZE | MSIZE | COINBASE | TIMESTAMP | NUMBER | DIFFICULTY | GASLIMIT | BASEFEE => 2,
         PUSH1 | PUSH2 | PUSH3 | PUSH4 | PUSH5 | PUSH6 | PUSH7 | PUSH8 | PUSH9 | PUSH10 | PUSH11
         | PUSH12 | PUSH13 | PUSH14 | PUSH15 | PUSH16 | DUP1 | DUP2 | DUP3 | DUP4 | DUP5 | DUP6
         | DUP7 | DUP8 | DUP9 | DUP10 | DUP11 | DUP12 | DUP13 | DUP14 | DUP15 | DUP16 | SWAP1
         | SWAP2 | SWAP3 | SWAP4 | SWAP5 | SWAP6 | SWAP7 | SWAP8 | SWAP9 | SWAP10 | SWAP11 | XOR
         | SWAP12 | SWAP13 | SWAP14 | SWAP15 | SWAP16 | ADD | SUB | EQ | ISZERO | AND | OR | NOT
-        | GT | LT | SGT | SLT | SHL | SHR | SAR | CALLDATALOAD => 3,
+        | GT | LT | SGT | SLT | SHL | SHR | SAR | CALLDATALOAD | BYTE => 3,
         MUL | DIV | SDIV | MOD | SMOD => 5,
         JUMP | ADDMOD | MULMOD => 8,
         JUMPI => 10,

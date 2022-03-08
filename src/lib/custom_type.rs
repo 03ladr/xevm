@@ -103,7 +103,7 @@ impl U256BE {
     }
 
     // SHL operator: int256<self> << int256<value>
-    pub fn shl(self, value: U256BE) -> Self {
+    pub fn shl(self, value: U256BE) -> Self {  // Limited by u256 methods. Investigte alternative method(s)
         let result = u256::from_be_bytes(self.0).overflowing_shl(u32::from_be_bytes(value.0[28..=31].try_into().unwrap()));
         if result.1 { return U256BE::zero(); };
         U256BE::from_u256(result.0)
@@ -113,17 +113,18 @@ impl U256BE {
     pub fn shr(self, value: U256BE) -> Self { // Limited by u256 methods. Investigte alternative method(s)
         let result = u256::from_be_bytes(self.0).overflowing_shr(u32::from_be_bytes(value.0[28..=31].try_into().unwrap()));
         if result.1 { return U256BE::zero(); };
-        U256BE::from_u256(result.0)    }
+        U256BE::from_u256(result.0)
+     }
 
     // SAR operator: int256<self> >> int256<value>
-    pub fn sar(self, value: U256BE) -> Self { // Limited by u256 methods. Investigte alternative method(s)
+    pub fn sar(self, value: U256BE) -> Self { // Limited by i256 methods. Investigte alternative method(s)
         let result = i256::from_be_bytes(self.0).overflowing_shr(u32::from_be_bytes(value.0[28..=31].try_into().unwrap()));
         if result.1 { return U256BE::zero(); };
         U256BE::from_i256(result.0)
-    } // Todo:  Must overflow
+    }
 
     // Equivalence operator: self == value
-    pub fn eq(self, value: U256BE) -> bool { // Limited by i256 methods. Investigte alternative method(s)
+    pub fn eq(self, value: U256BE) -> bool {
         if self.0 == value.0 { true }
         else { false }
     }
