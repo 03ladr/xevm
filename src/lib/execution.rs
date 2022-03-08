@@ -4,7 +4,6 @@ use super::opcode::*;
 use super::stack::Stack;
 use super::statuscode::StatusCode;
 use super::state::Block;
-// use ethnum::{u256, i256};
 use sha3::{Digest, Keccak256};
 
 // EVM Execution Context
