@@ -1,2 +1,2 @@
-# lux evm
-levm is a WIP Ethereum Virtual Machine implementation prioritizing speed and simplicity.
+# xevm
+xylene evm is a WIP Ethereum Virtual Machine implementation prioritizing speed and simplicity.
